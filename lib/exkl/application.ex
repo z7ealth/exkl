@@ -3,6 +3,8 @@ defmodule Exkl.Application do
   # for more information on OTP Applications
   @moduledoc false
 
+  alias Exkl.Systray
+
   use Application
 
   @impl true
@@ -11,6 +13,8 @@ defmodule Exkl.Application do
       # Starts a worker by calling: Exkl.Worker.start_link(arg)
       # {Exkl.Worker, arg}
     ]
+
+    Systray.start_link()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
