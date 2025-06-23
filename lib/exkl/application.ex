@@ -15,7 +15,8 @@ defmodule Exkl.Application do
       # Start a worker by calling: Exkl.Worker.start_link(arg)
       # {Exkl.Worker, arg},
       # Start to serve requests, typically the last entry
-      ExklWeb.Endpoint
+      ExklWeb.Endpoint,
+      {Exkl.Core, %{mode: "temp_c"}}
     ]
 
     Desktop.start_link()
