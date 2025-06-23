@@ -1,9 +1,9 @@
-defmodule Exkl.MainWindow do
+defmodule Exkl.Desktop do
   @behaviour :wx_object
 
   @title "EXKL"
   @size {1200, 800}
-  @icon_path Path.join(:code.priv_dir(:exkl), "static/images/deepcool.bmp")
+  @icon_path Path.join(:code.priv_dir(:exkl), "static/images/deepcool.png")
 
   def start_link() do
     :wx_object.start_link(__MODULE__, [], [])

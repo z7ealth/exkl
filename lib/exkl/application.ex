@@ -2,7 +2,7 @@ defmodule Exkl.Application do
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
   @moduledoc false
-  alias Exkl.MainWindow
+  alias Exkl.Desktop
 
   use Application
 
@@ -18,7 +18,7 @@ defmodule Exkl.Application do
       ExklWeb.Endpoint
     ]
 
-    MainWindow.start_link()
+    Desktop.start_link()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
