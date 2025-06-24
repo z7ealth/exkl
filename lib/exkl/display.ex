@@ -1,5 +1,8 @@
 defmodule Exkl.Display do
+  alias Exkl.HidApiNif
   alias Exkl.Core
+
+  @interval 2000
 
   @vendor_id 0x3633
 
@@ -41,7 +44,7 @@ defmodule Exkl.Display do
     base_data = List.replace_at(base_data, 0, 16)
 
     # base_data[2] = get_bar_value(value) as u8;
-    bar_value = get_bar_value(value)
+    bar_value = get_bar_value(value) |> trunc()
     base_data = List.replace_at(base_data, 2, bar_value)
 
     # Match equivalent to Rust's `match mode { ... }`
@@ -82,5 +85,22 @@ defmodule Exkl.Display do
 
     # Return the final list
     result_data
+    |> :binary.list_to_bin()
+  end
+
+  def init() do
+    ak = HidApiNif.open(@vendor_id, @products[:ak500])
+
+    loop(ak)
+  end
+
+  def loop(device_handle) do
+    data =
+      get_data(Core.get_temp(), "temp_c")
+
+    HidApiNif.write(device_handle, data)
+
+    Process.sleep(@interval)
+    loop(device_handle)
   end
 end

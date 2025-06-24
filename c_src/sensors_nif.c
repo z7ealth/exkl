@@ -12,8 +12,6 @@ double get_cpu_temp_celcius() {
     sensors_snprintf_chip_name(chip_name_buf, sizeof(chip_name_buf), chip);
 
     if (strstr(chip_name_buf, "k10temp") || strstr(chip_name_buf, "coretemp")) {
-      printf("Detected CPU sensor: %s\n", chip_name_buf);
-
       int feature_nr = 0;
       const sensors_feature *feature;
 

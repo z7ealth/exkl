@@ -2,7 +2,9 @@ defmodule Exkl.Application do
   # See https://hexdocs.pm/elixir/Application.html
   # for more information on OTP Applications
   @moduledoc false
+
   alias Exkl.Desktop
+  alias Exkl.Display
 
   use Application
 

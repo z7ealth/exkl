@@ -7,16 +7,6 @@
 // NIF Resource Type for hid_device handle
 static ErlNifResourceType *HID_DEVICE_RESOURCE_TYPE = NULL;
 
-static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info) {
-  if (hid_init() != 0) {
-    fprintf(stderr, "sensors_init failed\n");
-    return -1;
-  }
-  return 0;
-}
-
-static void unload(ErlNifEnv *env, void *priv_data) { hid_exit(); }
-
 // Destructor for the hid_device resource
 static void hid_device_dtor(ErlNifEnv *env, void *obj) {
   hid_device *handle =
@@ -25,6 +15,24 @@ static void hid_device_dtor(ErlNifEnv *env, void *obj) {
     hid_close(handle);
   }
 }
+
+static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info) {
+  if (hid_init() != 0) {
+    fprintf(stderr, "sensors_init failed\n");
+    return 1;
+  }
+
+  HID_DEVICE_RESOURCE_TYPE = enif_open_resource_type(
+      env, "Elixir.Exkl.HidApiNif", "HIDDevice", &hid_device_dtor,
+      ERL_NIF_RT_CREATE | ERL_NIF_RT_TAKEOVER, NULL);
+
+  if (HID_DEVICE_RESOURCE_TYPE == NULL)
+    return -1;
+
+  return 0;
+}
+
+static void unload(ErlNifEnv *env, void *priv_data) { hid_exit(); }
 
 static ERL_NIF_TERM open_nif(ErlNifEnv *env, int argc,
                              const ERL_NIF_TERM argv[]) {
@@ -43,16 +51,17 @@ static ERL_NIF_TERM open_nif(ErlNifEnv *env, int argc,
   if (!handle) {
     printf("Unable to open device\n");
     hid_exit();
-    return 1;
+    return enif_make_int(env, 1);
   }
 
   // Create a resource and attach the handle
   hid_device **res_handle = (hid_device **)enif_alloc_resource(
       HID_DEVICE_RESOURCE_TYPE, sizeof(hid_device *));
+
   if (!res_handle) {
     printf("Unable to create handle resource\n");
     hid_exit();
-    return 1;
+    return enif_make_int(env, 1);
   }
   *res_handle = handle;
   resource_term = enif_make_resource(env, res_handle);
@@ -76,11 +85,11 @@ static ERL_NIF_TERM close_nif(ErlNifEnv *env, int argc,
   // double-free if `close` is called multiple times. The actual hid_close will
   // happen when the resource is finally garbage collected.
   *res_handle = NULL;
-  return 0;
+  return enif_make_int(env, 0);
 }
 
-static ERL_NIF_TERM hid_write_nif(ErlNifEnv *env, int argc,
-                                  const ERL_NIF_TERM argv[]) {
+static ERL_NIF_TERM write_nif(ErlNifEnv *env, int argc,
+                              const ERL_NIF_TERM argv[]) {
   hid_device **res_handle;
   ErlNifBinary data_bin;
   int res;
@@ -112,14 +121,13 @@ static ERL_NIF_TERM hid_write_nif(ErlNifEnv *env, int argc,
       error_len = strlen(error_msg_buf);
     }
     error_msg_buf[error_len] = '\0';
-
-    return 1;
+    return enif_make_int(env, 1);
   }
-  return 0;
+  return enif_make_int(env, 0);
 }
 
 // --- NIF Exports ---
-static ErlNifFunc nif_funcs[] = {{"open", 2, open_nif},
-                                 {"close", 1, close_nif}};
+static ErlNifFunc nif_funcs[] = {
+    {"open", 2, open_nif}, {"close", 1, close_nif}, {"write", 2, write_nif}};
 
 ERL_NIF_INIT(Elixir.Exkl.HidApiNif, nif_funcs, load, NULL, NULL, unload)
