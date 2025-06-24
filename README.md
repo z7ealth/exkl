@@ -23,3 +23,7 @@ To compile C NIF's
 ``` bash
 gcc -fPIC -shared -I/usr/lib/erlang/usr/include c_src/sensors_nif.c -o priv/nifs/sensors_nif.so -lsensors
 ```
+
+``` bash
+gcc -fPIC -shared -I/usr/lib/erlang/usr/include -I/usr/include/hidapi c_src/hid_api_nif.c -o priv/nifs/hid_api_nif.so
+```

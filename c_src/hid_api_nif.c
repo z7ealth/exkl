@@ -1,6 +1,9 @@
 #include <erl_nif.h>
 #include <hidapi.h>
 
+#define MAX_STR 255
+#define MAX_UTF8_STR_LEN (MAX_STR * 4)
+
 // NIF Resource Type for hid_device handle
 static ErlNifResourceType *HID_DEVICE_RESOURCE_TYPE = NULL;
 
@@ -30,7 +33,7 @@ static ERL_NIF_TERM open_nif(ErlNifEnv *env, int argc,
   hid_device *handle;
   ERL_NIF_TERM resource_term;
 
-  if (!enif_get_int(env, argv[0], &vendor_id) ||
+  if (argc != 2 || !enif_get_int(env, argv[0], &vendor_id) ||
       !enif_get_int(env, argv[1], &product_id)) {
     return enif_make_badarg(env);
   }
@@ -59,9 +62,64 @@ static ERL_NIF_TERM open_nif(ErlNifEnv *env, int argc,
   return resource_term;
 }
 
+static ERL_NIF_TERM close_nif(ErlNifEnv *env, int argc,
+                              const ERL_NIF_TERM argv[]) {
+  hid_device **res_handle;
+  if (argc != 1 ||
+      !enif_get_resource(env, argv[0], HID_DEVICE_RESOURCE_TYPE,
+                         (void **)&res_handle) ||
+      *res_handle == NULL) {
+    return enif_make_badarg(env);
+  }
+  // Set the pointer in the resource to NULL.
+  // This marks it as "closed" from the NIF's perspective and prevents
+  // double-free if `close` is called multiple times. The actual hid_close will
+  // happen when the resource is finally garbage collected.
+  *res_handle = NULL;
+  return 0;
+}
+
+static ERL_NIF_TERM hid_write_nif(ErlNifEnv *env, int argc,
+                                  const ERL_NIF_TERM argv[]) {
+  hid_device **res_handle;
+  ErlNifBinary data_bin;
+  int res;
+
+  if (argc != 2 ||
+      !enif_get_resource(env, argv[0], HID_DEVICE_RESOURCE_TYPE,
+                         (void **)&res_handle) ||
+      *res_handle == NULL || !enif_inspect_binary(env, argv[1], &data_bin)) {
+    return enif_make_badarg(env);
+  }
+
+  res = hid_write(*res_handle, data_bin.data, data_bin.size);
+
+  if (res < 0) {
+    const wchar_t *error_wstr = hid_error(*res_handle);
+    char error_msg_buf[MAX_UTF8_STR_LEN];
+    size_t error_len = 0;
+    if (error_wstr) {
+      error_len = wcstombs(error_msg_buf, error_wstr, MAX_UTF8_STR_LEN - 1);
+      if (error_len == (size_t)-1) {
+        snprintf(
+            error_msg_buf, MAX_UTF8_STR_LEN,
+            "hid_write failed (conversion error for hidapi error message)");
+        error_len = strlen(error_msg_buf);
+      }
+    } else {
+      snprintf(error_msg_buf, MAX_UTF8_STR_LEN,
+               "hid_write failed (no specific hidapi error message)");
+      error_len = strlen(error_msg_buf);
+    }
+    error_msg_buf[error_len] = '\0';
+
+    return 1;
+  }
+  return 0;
+}
+
 // --- NIF Exports ---
-static ErlNifFunc nif_funcs[] = {
-    {"open", 3, open_nif},
-};
+static ErlNifFunc nif_funcs[] = {{"open", 2, open_nif},
+                                 {"close", 1, close_nif}};
 
 ERL_NIF_INIT(Elixir.Exkl.HidApiNif, nif_funcs, load, NULL, NULL, unload)
