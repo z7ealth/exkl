@@ -16,3 +16,10 @@ Ready to run in production? Please [check our deployment guides](https://hexdocs
 * Docs: https://hexdocs.pm/phoenix
 * Forum: https://elixirforum.com/c/phoenix-forum
 * Source: https://github.com/phoenixframework/phoenix
+
+
+To compile C NIF's
+
+``` bash
+gcc -fPIC -shared -I/usr/lib/erlang/erts-16.0.1/include c_src/sensors_nif.c -o priv/nifs/sensors_nif.so -lsensors
+```
