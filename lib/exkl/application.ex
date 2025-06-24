@@ -4,7 +4,6 @@ defmodule Exkl.Application do
   @moduledoc false
 
   alias Exkl.Desktop
-  alias Exkl.Display
 
   use Application
 

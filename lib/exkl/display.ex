@@ -2,7 +2,7 @@ defmodule Exkl.Display do
   alias Exkl.HidApiNif
   alias Exkl.Core
 
-  @interval 2000
+  @interval 1000
 
   @vendor_id 0x3633
 
