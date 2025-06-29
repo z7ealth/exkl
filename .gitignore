@@ -36,5 +36,5 @@ npm-debug.log
 /assets/node_modules/
 
 # Ignore nifs and clangd lsp files
-/priv/nifs
+/priv/nifs/
 compile_flags.txt
