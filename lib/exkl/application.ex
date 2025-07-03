@@ -3,7 +3,7 @@ defmodule Exkl.Application do
   # for more information on OTP Applications
   @moduledoc false
 
-  alias Exkl.Desktop
+  # alias Exkl.Desktop
 
   use Application
 
@@ -21,7 +21,7 @@ defmodule Exkl.Application do
       {Exkl.Display, nil}
     ]
 
-    Desktop.start_link()
+    # Desktop.start_link()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
