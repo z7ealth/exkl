@@ -33,6 +33,9 @@ defmodule Exkl.Display do
   def init(_params) do
     ak = %Ak{handle: HidApiNif.open(@vendor_id, @products[:ak500])}
     PubSub.subscribe(Exkl.PubSub, @pubsub_topic)
+
+    HidApiNif.write(ak.handle, get_data(0.0, "start"))
+
     {:ok, ak}
   end
 
@@ -85,6 +88,8 @@ defmodule Exkl.Display do
     base_data =
       case mode do
         # Default case for `DisplayMode::Celsius`
+        "start" ->
+          List.replace_at(base_data, 1, @display_modes[:start])
         _ ->
           List.replace_at(base_data, 1, @display_modes[:celsius])
       end

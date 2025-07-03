@@ -42,4 +42,4 @@ log "Building release..."
 MIX_ENV=$ENV mix release --overwrite
 
 log "Starting the release..."
-PHX_SERVER=true SECRET_KEY_BASE=$SECRET_KEY_BASE "$RELEASE_DIR/bin/$APP_NAME" daemon
+PHX_SERVER=true SECRET_KEY_BASE=$SECRET_KEY_BASE "$RELEASE_DIR/bin/$APP_NAME" start
