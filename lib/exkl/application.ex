@@ -17,7 +17,8 @@ defmodule Exkl.Application do
       # {Exkl.Worker, arg},
       # Start to serve requests, typically the last entry
       ExklWeb.Endpoint,
-      {Exkl.Core, %{mode: "temp_c"}}
+      {Exkl.Core, %{mode: "temp_c"}},
+      {Exkl.Display, nil}
     ]
 
     Desktop.start_link()

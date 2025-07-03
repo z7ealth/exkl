@@ -3,16 +3,16 @@ defmodule Exkl.Core do
 
   require Logger
 
+  alias Phoenix.PubSub
   alias Exkl.SensorsNif
+
+  @pubsub_topic "cpu_metrics"
+  @update_interval 1000
 
   ## Public API
 
   def start_link(init_arg) do
     GenServer.start_link(__MODULE__, init_arg, name: __MODULE__)
-  end
-
-  def get_temp do
-    GenServer.call(__MODULE__, :get_cpu_temp)
   end
 
   def change_mode(mode) do
@@ -23,17 +23,9 @@ defmodule Exkl.Core do
 
   @impl true
   def init(initial_state) do
+    schedule_update()
+
     {:ok, initial_state}
-  end
-
-  @impl true
-  def handle_call(:get_cpu_temp, _from, %{mode: "temp_c"} = state) do
-    {:reply, SensorsNif.get_cpu_temp_celcius(), state}
-  end
-
-  @impl true
-  def handle_call(:get_cpu_temp, _from, %{mode: "temp_f"} = state) do
-    {:reply, SensorsNif.get_cpu_temp_fahrenheit(), state}
   end
 
   @impl true
@@ -42,8 +34,22 @@ defmodule Exkl.Core do
   end
 
   @impl true
-  def handle_info(msg, state) do
-    Logger.error("Display - Unhandled message: #{msg}")
+  def handle_info(:update_cpu_metrics, state) do
+    cpu_temp = SensorsNif.get_cpu_temp_celcius()
+    Logger.debug("Publishing CPU temp: #{cpu_temp}%")
+
+    PubSub.broadcast(Exkl.PubSub, @pubsub_topic, {:cpu_metrics, %{temp: cpu_temp}})
+
+    schedule_update()
     {:noreply, state}
+  rescue
+    e ->
+      Logger.error("Error getting or publishing CPU usage: #{inspect(e)}")
+      schedule_update()
+      {:noreply, state}
+  end
+
+  defp schedule_update() do
+    Process.send_after(self(), :update_cpu_metrics, @update_interval)
   end
 end

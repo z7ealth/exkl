@@ -1,22 +1,56 @@
 defmodule Exkl.Display do
-  alias Exkl.HidApiNif
-  alias Exkl.Core
+  use GenServer
 
-  @interval 1000
+  require Logger
+
+  alias Phoenix.PubSub
+  alias Exkl.HidApiNif
+  alias Exkl.Ak
+
+  @pubsub_topic "cpu_metrics"
 
   @vendor_id 0x3633
-
   @products %{
     ak500: 0x0003,
     ak620: 0x0004
   }
-
   @display_modes %{
     celsius: 19,
     fahrenheit: 35,
     utilization: 76,
     start: 170
   }
+
+  # Client
+
+  def start_link(params \\ nil) do
+    GenServer.start_link(__MODULE__, params)
+  end
+
+  # Server (callbacks)
+
+  @impl true
+  def init(_params) do
+    ak = %Ak{handle: HidApiNif.open(@vendor_id, @products[:ak500])}
+    PubSub.subscribe(Exkl.PubSub, @pubsub_topic)
+    {:ok, ak}
+  end
+
+  @impl true
+  def handle_info({:cpu_metrics, new_cpu_metrics}, ak) do
+    Logger.debug("Exkl.Display received CPU metrics update: #{inspect(new_cpu_metrics)}%")
+
+    HidApiNif.write(ak.handle, get_data(new_cpu_metrics.temp, "temp_c"))
+
+    {:noreply, ak}
+  end
+
+  @impl true
+  def terminate(reason, ak) do
+    Logger.info("Exkl.Display terminating. Closing HID device handle: #{inspect(ak.handle)}. Reason: #{reason}")
+    HidApiNif.close(ak)
+    :ok
+  end
 
   defp get_bar_value(temp) when temp < 10.0, do: 0.0
   defp get_bar_value(temp), do: temp / 10.0
@@ -86,21 +120,5 @@ defmodule Exkl.Display do
     # Return the final list
     result_data
     |> :binary.list_to_bin()
-  end
-
-  def init() do
-    ak = HidApiNif.open(@vendor_id, @products[:ak500])
-
-    loop(ak)
-  end
-
-  def loop(device_handle) do
-    data =
-      get_data(Core.get_temp(), "temp_c")
-
-    HidApiNif.write(device_handle, data)
-
-    Process.sleep(@interval)
-    loop(device_handle)
   end
 end
