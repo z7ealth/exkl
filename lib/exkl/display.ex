@@ -23,10 +23,9 @@ defmodule Exkl.Display do
 
   # Client
 
-  def start_link(params \\ nil) do
-    GenServer.start_link(__MODULE__, params)
+  def start_link() do
+    GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
-
   # Server (callbacks)
 
   @impl true

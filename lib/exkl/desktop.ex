@@ -39,5 +39,6 @@ defmodule Exkl.Desktop do
 
     :wxTaskBarIcon.setIcon(task_bar, build_icon())
   end
+
   defp build_icon, do: :wxIcon.new(@icon_path)
 end

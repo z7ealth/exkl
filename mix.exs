@@ -20,7 +20,7 @@ defmodule Exkl.MixProject do
   def application do
     [
       mod: {Exkl.Application, []},
-      extra_applications: [:logger, :runtime_tools, :wx]
+      extra_applications: [:logger, :runtime_tools, :wx, :observer]
     ]
   end
 

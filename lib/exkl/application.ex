@@ -18,10 +18,15 @@ defmodule Exkl.Application do
       # Start to serve requests, typically the last entry
       ExklWeb.Endpoint,
       {Exkl.Core, %{mode: "temp_c"}},
-      {Exkl.Display, nil}
+      %{
+        id: Exkl.Display,
+        start: {Exkl.Display, :start_link, []},
+        restart: :temporary
+      },
+      Exkl.Gui
     ]
 
-    # Desktop.start_link()
+    :observer.start()
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
