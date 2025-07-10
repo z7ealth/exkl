@@ -2,7 +2,7 @@ defmodule Exkl.Desktop do
   @behaviour :wx_object
 
   @title "EXKL"
-  @size {1200, 800}
+  @size {800, 800}
   @icon_path Path.join(:code.priv_dir(:exkl), "static/images/exkl_logo.png")
 
   def start_link() do
@@ -18,7 +18,7 @@ defmodule Exkl.Desktop do
 
     :wxFrame.setIcon(frame, build_icon())
     :wxFrame.show(frame)
-    :wxFrame.maximize(frame)
+    #:wxFrame.maximize(frame)
 
     state = %{task_bar: task_bar, web_view: web_view}
     {frame, state}

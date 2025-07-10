@@ -19,7 +19,7 @@ defmodule Exkl.Application do
       ExklWeb.Endpoint,
       {Exkl.Core, %{mode: "temp_c"}},
       Exkl.Display,
-      Exkl.Gui
+      Exkl.GUI
     ]
 
     :observer.start()

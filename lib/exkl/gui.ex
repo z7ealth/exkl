@@ -1,4 +1,4 @@
-defmodule Exkl.Gui do
+defmodule Exkl.GUI do
   use GenServer
 
   def start_link(args) do
