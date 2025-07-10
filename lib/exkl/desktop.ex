@@ -3,7 +3,7 @@ defmodule Exkl.Desktop do
 
   @title "EXKL"
   @size {1200, 800}
-  @icon_path Path.join(:code.priv_dir(:exkl), "static/images/deepcool.png")
+  @icon_path Path.join(:code.priv_dir(:exkl), "static/images/exkl_logo.png")
 
   def start_link() do
     :wx_object.start_link(__MODULE__, [], [])
