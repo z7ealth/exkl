@@ -18,11 +18,7 @@ defmodule Exkl.Application do
       # Start to serve requests, typically the last entry
       ExklWeb.Endpoint,
       {Exkl.Core, %{mode: "temp_c"}},
-      %{
-        id: Exkl.Display,
-        start: {Exkl.Display, :start_link, []},
-        restart: :temporary
-      },
+      Exkl.Display,
       Exkl.Gui
     ]
 
