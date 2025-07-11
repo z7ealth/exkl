@@ -1,29 +1,17 @@
 # Exkl
 
-To start your Phoenix server:
+Unofficial Linux control software for DeepCool's AK Digital CPU Cooler. Supports AK500 and AK620 devices.
 
-* Run `mix setup` to install and setup dependencies
-* Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
-
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
-
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
-
-## Learn more
-
-* Official website: https://www.phoenixframework.org/
-* Guides: https://hexdocs.pm/phoenix/overview.html
-* Docs: https://hexdocs.pm/phoenix
-* Forum: https://elixirforum.com/c/phoenix-forum
-* Source: https://github.com/phoenixframework/phoenix
-
-
-To compile C NIF's
+![EXKL Logo](./priv/static/images/exkl_logo.png)
+ 
+### Install
 
 ``` bash
-gcc -fPIC -shared -I/usr/lib/erlang/usr/include c_src/sensors_nif.c -o priv/nifs/sensors_nif.so -lsensors
+git clone https://github.com/z7ealth/exkl.git
+
+./install.sh
 ```
 
-``` bash
-gcc -fPIC -shared -I/usr/lib/erlang/usr/include -I/usr/include/hidapi c_src/hid_api_nif.c -o priv/nifs/hid_api_nif.so -lhidapi-hidraw 
-```
+### Features
+
+Currently, it only shows the temperature in Celsius (cpu_temp_celsius). I plan to add Fahrenheit (cpu_temp_fahrenheit) and CPU utilization.

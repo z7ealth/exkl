@@ -25,8 +25,6 @@ defmodule Exkl.Desktop do
   end
 
   def handle_event({:wx, _, _, _, {listener, action}}, state) do
-    dbg(listener)
-    dbg(action)
     {:noreply, state}
   end
 
