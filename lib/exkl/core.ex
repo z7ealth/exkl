@@ -35,7 +35,7 @@ defmodule Exkl.Core do
 
   @impl true
   def handle_info(:update_cpu_metrics, state) do
-    cpu_temp = SensorsNif.get_cpu_temp_celcius()
+    cpu_temp = SensorsNif.get_cpu_temp_celsius()
     Logger.debug("Publishing CPU temp: #{cpu_temp}%")
 
     PubSub.broadcast(Exkl.PubSub, @pubsub_topic, {:cpu_metrics, %{temp: cpu_temp}})

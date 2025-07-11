@@ -2,7 +2,7 @@
 #include <sensors/sensors.h>
 #include <string.h>
 
-double get_cpu_temp_celcius() {
+double get_cpu_temp_celsius() {
   int chip_nr = 0;
   double temp = 0.0;
   const sensors_chip_name *chip;
@@ -37,17 +37,17 @@ double get_cpu_temp_celcius() {
 }
 
 double get_cpu_temp_fahrenheit() {
-  return (get_cpu_temp_celcius() * 9.0 / 5.0) + 32.0;
+  return (get_cpu_temp_celsius() * 9.0 / 5.0) + 32.0;
 }
 
-static ERL_NIF_TERM get_cpu_temp_celcius_nif(ErlNifEnv *env, int argc,
+static ERL_NIF_TERM get_cpu_temp_celsius_nif(ErlNifEnv *env, int argc,
                                              const ERL_NIF_TERM argv[]) {
-  return enif_make_double(env, get_cpu_temp_celcius());
+  return enif_make_double(env, get_cpu_temp_celsius());
 }
 
 static ERL_NIF_TERM get_cpu_temp_fahrenheit_nif(ErlNifEnv *env, int argc,
                                              const ERL_NIF_TERM argv[]) {
-  double temp = get_cpu_temp_celcius();
+  double temp = get_cpu_temp_celsius();
 
   return enif_make_double(env, get_cpu_temp_fahrenheit());
 }
@@ -66,7 +66,7 @@ static void unload(ErlNifEnv *env, void *priv_data) { sensors_cleanup(); }
 
 // --- NIF Exports ---
 static ErlNifFunc nif_funcs[] = {
-    {"get_cpu_temp_celcius", 0, get_cpu_temp_celcius_nif},
+    {"get_cpu_temp_celsius", 0, get_cpu_temp_celsius_nif},
     {"get_cpu_temp_fahrenheit", 0, get_cpu_temp_fahrenheit_nif}
 };
 
