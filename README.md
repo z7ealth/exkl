@@ -14,4 +14,7 @@ git clone https://github.com/z7ealth/exkl.git
 
 ### Features
 
-Currently, it only shows the temperature in Celsius (cpu_temp_celsius). I plan to add Fahrenheit (cpu_temp_fahrenheit) and CPU utilization.
+- [x] Show CPU temperature C°
+- [ ] Show CPU temperature F°
+- [ ] Show CPU Utilization
+- [ ] Systemd service
