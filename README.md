@@ -2,7 +2,7 @@
 
 Unofficial Linux control software for DeepCool's AK Digital CPU Cooler. Supports AK500 and AK620 devices.
 
-![AK Cooler](./priv/static/images/ak_cooler.jpeg)
+<img src="./priv/static/images/ak_cooler.jpeg" alt="AK Cooler" style="width: 150px;" />
  
 ### Install
 
