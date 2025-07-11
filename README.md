@@ -1,8 +1,8 @@
-# Exkl
+ # ![EXKL Logo](./priv/static/images/exkl_logo.png) Exkl
 
 Unofficial Linux control software for DeepCool's AK Digital CPU Cooler. Supports AK500 and AK620 devices.
 
-![EXKL Logo](./priv/static/images/exkl_logo.png)
+
  
 ### Install
 
