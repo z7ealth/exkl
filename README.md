@@ -18,3 +18,8 @@ git clone https://github.com/z7ealth/exkl.git
 - [ ] Show CPU temperature F°
 - [ ] Show CPU Utilization
 - [ ] Systemd service
+
+
+### Acknowledgements
+
+    raghulkrishna/deepcool-ak620-digital-linux — core inspiration behind the cooler control logic.
