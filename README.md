@@ -22,4 +22,4 @@ git clone https://github.com/z7ealth/exkl.git
 
 ### Acknowledgements
 
-    raghulkrishna/deepcool-ak620-digital-linux — core inspiration behind the cooler control logic.
+- raghulkrishna/deepcool-ak620-digital-linux — core inspiration behind the cooler control logic.
