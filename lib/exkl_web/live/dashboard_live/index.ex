@@ -10,7 +10,7 @@ defmodule ExklWeb.DashboardLive.Index do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <div class="grid grid-cols-2 justify-center items-center md:items-start gap-6">
+      <div class="grid md:grid-cols-2 justify-center items-center md:items-start gap-6">
         <div class="card bg-base-300 card-xs shadow-sm p-8">
           <div class="card-body flex flex-col items-center">
             <div class="avatar">
