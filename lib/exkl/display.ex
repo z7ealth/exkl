@@ -25,6 +25,7 @@ defmodule Exkl.Display do
   def start_link(args) do
     GenServer.start_link(__MODULE__, args, name: __MODULE__)
   end
+
   # Server (callbacks)
 
   @impl true
@@ -48,13 +49,20 @@ defmodule Exkl.Display do
 
   @impl true
   def terminate(reason, device) do
-    Logger.info("Exkl.Display terminating. Closing HID device handle: #{inspect(device.handle)}. Reason: #{reason}")
+    Logger.info(
+      "Exkl.Display terminating. Closing HID device handle: #{inspect(device.handle)}. Reason: #{reason}"
+    )
+
     HidApiNif.close(device)
     :ok
   end
 
-  defp get_bar_value(temp) when temp < 10.0, do: 0.0
-  defp get_bar_value(temp), do: temp / 10.0
+  defp get_bar_value(metrics_value, _mode) when metrics_value < 10.0, do: 0.0
+
+  defp get_bar_value(metrics_value, mode) when mode in [:cpu_temp_c, :cpu_util],
+    do: metrics_value / 10.0
+
+  defp get_bar_value(metrics_value, :cpu_temp_f), do: fahrenheit_to_celsius(metrics_value) / 10.0
 
   @spec get_data(float(), Exkl.AK.modes()) :: binary()
   def get_data(value, mode) do
@@ -80,7 +88,7 @@ defmodule Exkl.Display do
     base_data = List.replace_at(base_data, 0, 16)
 
     # base_data[2] = get_bar_value(value) as u8;
-    bar_value = get_bar_value(value) |> trunc()
+    bar_value = get_bar_value(value, mode) |> trunc()
     base_data = List.replace_at(base_data, 2, bar_value)
 
     # Match equivalent to Rust's `match mode { ... }`
@@ -89,10 +97,13 @@ defmodule Exkl.Display do
         # Default case for `DisplayMode::Celsius`
         :start ->
           List.replace_at(base_data, 1, @display_modes[:start])
+
         :cpu_util ->
           List.replace_at(base_data, 1, @display_modes[:utilization])
+
         :cpu_temp_f ->
           List.replace_at(base_data, 1, @display_modes[:fahrenheit])
+
         _ ->
           List.replace_at(base_data, 1, @display_modes[:celsius])
       end
@@ -128,5 +139,9 @@ defmodule Exkl.Display do
     # Return the final list
     result_data
     |> :binary.list_to_bin()
+  end
+
+  def fahrenheit_to_celsius(f) when is_float(f) do
+    (f - 32) * 5 / 9
   end
 end
