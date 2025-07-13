@@ -18,6 +18,28 @@ defmodule ExklWeb.DashboardLive.Index do
                 <img src={~p"/images/exkl_logo.png"} />
               </div>
             </div>
+            <div class="my-4">
+              <.form :let={f} for={nil}>
+                <div class="flex gap-2">
+                  <.input
+                    field={f[:mode]}
+                    type="radio"
+                    phx-click="change_mode"
+                    phx-value-mode={:cpu_temp_c}
+                    label="Temperature C°"
+                    checked
+                  />
+                  <.input
+                    field={f[:mode]}
+                    phx-click="change_mode"
+                    phx-value-mode={:cpu_temp_f}
+                    label="Temperature F°"
+                    type="radio"
+                  />
+                </div>
+              </.form>
+            </div>
+            <div class="divider" />
             <.list>
               <:item title="Hostname">{@facts.hostname}</:item>
               <:item title="OS">{@facts.os}</:item>
@@ -31,8 +53,9 @@ defmodule ExklWeb.DashboardLive.Index do
             <div class="stat-figure">
               <.icon name="hero-cpu-chip" class="w-8 h-8" />
             </div>
-            <div class="stat-title">Temperature C°</div>
-            <div class="stat-value text-primary">{trunc(@cpu_metrics.temp)}°</div>
+            <div :if={@ak.mode == :cpu_temp_c} class="stat-title">Temperature C°</div>
+            <div :if={@ak.mode == :cpu_temp_f} class="stat-title">Temperature F°</div>
+            <div class="stat-value text-primary">{trunc(@ak.metrics_value)}°</div>
           </div>
         </div>
       </div>
@@ -49,7 +72,7 @@ defmodule ExklWeb.DashboardLive.Index do
 
     {:ok,
      socket
-     |> assign(:cpu_metrics, %{temp: 0})
+     |> assign(:ak, %Exkl.AK{})
      |> assign(:facts, %{
        os: "#{os_type} - #{os_name}",
        arch: :erlang.system_info(:system_architecture) |> to_string(),
@@ -58,11 +81,21 @@ defmodule ExklWeb.DashboardLive.Index do
   end
 
   @impl true
-  def handle_info({:cpu_metrics, new_cpu_metrics}, socket) do
-    Logger.debug(
-      "Exkl.DashboardLive.Index received CPU metrics update: #{inspect(new_cpu_metrics)}%"
-    )
+  def handle_event("change_mode", %{"mode" => "cpu_temp_c"}, socket) do
+    Exkl.Core.change_mode(:cpu_temp_c)
+    {:noreply, socket}
+  end
 
-    {:noreply, socket |> assign(:cpu_metrics, new_cpu_metrics)}
+  @impl true
+  def handle_event("change_mode", %{"mode" => "cpu_temp_f"}, socket) do
+    Exkl.Core.change_mode(:cpu_temp_f)
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:cpu_metrics, ak}, socket) do
+    Logger.debug("Exkl.DashboardLive.Index received CPU metrics update: #{inspect(ak)}%")
+
+    {:noreply, socket |> assign(:ak, ak)}
   end
 end

@@ -143,7 +143,7 @@ defmodule ExklWeb.CoreComponents do
 
   attr :type, :string,
     default: "text",
-    values: ~w(checkbox color date datetime-local email file month number password
+    values: ~w(checkbox radio color date datetime-local email file month number password
                search select tel text textarea time url week)
 
   attr :field, Phoenix.HTML.FormField,
@@ -190,6 +190,33 @@ defmodule ExklWeb.CoreComponents do
             value="true"
             checked={@checked}
             class={@class || "checkbox checkbox-sm"}
+            {@rest}
+          />{@label}
+        </span>
+      </label>
+      <.error :for={msg <- @errors}>{msg}</.error>
+    </fieldset>
+    """
+  end
+
+  def input(%{type: "radio"} = assigns) do
+    assigns =
+      assign_new(assigns, :checked, fn ->
+        Phoenix.HTML.Form.normalize_value("checkbox", assigns[:value])
+      end)
+
+    ~H"""
+    <fieldset class="fieldset mb-2">
+      <label>
+        <input type="hidden" name={@name} value="false" disabled={@rest[:disabled]} />
+        <span class="label">
+          <input
+            type="radio"
+            id={@id}
+            name={@name}
+            value="true"
+            checked={@checked}
+            class={@class || "radio radio-sm"}
             {@rest}
           />{@label}
         </span>

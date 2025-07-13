@@ -5,7 +5,6 @@ defmodule Exkl.Display do
 
   alias Phoenix.PubSub
   alias Exkl.HidApiNif
-  alias Exkl.Ak
 
   @pubsub_topic "cpu_metrics"
 
@@ -30,34 +29,35 @@ defmodule Exkl.Display do
 
   @impl true
   def init(_params) do
-    ak = %Ak{handle: HidApiNif.open(@vendor_id, @products[:ak500])}
+    device = %{handle: HidApiNif.open(@vendor_id, @products[:ak500])}
     PubSub.subscribe(Exkl.PubSub, @pubsub_topic)
 
-    HidApiNif.write(ak.handle, get_data(0.0, "start"))
+    HidApiNif.write(device.handle, get_data(0.0, "start"))
 
-    {:ok, ak}
+    {:ok, device}
   end
 
   @impl true
-  def handle_info({:cpu_metrics, new_cpu_metrics}, ak) do
-    Logger.debug("Exkl.Display received CPU metrics update: #{inspect(new_cpu_metrics)}%")
+  def handle_info({:cpu_metrics, %{mode: mode, metrics_value: metrics_value} = ak}, device) do
+    Logger.debug("Exkl.Display received metrics update: #{inspect(ak)}%")
 
-    HidApiNif.write(ak.handle, get_data(new_cpu_metrics.temp, "temp_c"))
+    HidApiNif.write(device.handle, get_data(metrics_value, mode))
 
-    {:noreply, ak}
+    {:noreply, device}
   end
 
   @impl true
-  def terminate(reason, ak) do
-    Logger.info("Exkl.Display terminating. Closing HID device handle: #{inspect(ak.handle)}. Reason: #{reason}")
-    HidApiNif.close(ak)
+  def terminate(reason, device) do
+    Logger.info("Exkl.Display terminating. Closing HID device handle: #{inspect(device.handle)}. Reason: #{reason}")
+    HidApiNif.close(device)
     :ok
   end
 
   defp get_bar_value(temp) when temp < 10.0, do: 0.0
   defp get_bar_value(temp), do: temp / 10.0
 
-  def get_data(value, mode) when is_float(value) and is_binary(mode) do
+  @spec get_data(float(), Exkl.AK.modes()) :: binary()
+  def get_data(value, mode) do
     # Initialize base_data equivalent to `vec![0; 64]`
     # In Elixir, a list of integers works well for Vec<u8>
     base_data = List.duplicate(0, 64)
@@ -87,8 +87,10 @@ defmodule Exkl.Display do
     base_data =
       case mode do
         # Default case for `DisplayMode::Celsius`
-        "start" ->
+        :start ->
           List.replace_at(base_data, 1, @display_modes[:start])
+        :cpu_temp_f ->
+          List.replace_at(base_data, 1, @display_modes[:fahrenheit])
         _ ->
           List.replace_at(base_data, 1, @display_modes[:celsius])
       end
