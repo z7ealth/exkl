@@ -58,6 +58,9 @@ defmodule Exkl.Core do
   defp update_metrics(%AK{mode: :cpu_temp_f} = ak),
     do: Map.replace!(ak, :metrics_value, SensorsNif.get_cpu_temp_fahrenheit())
 
+  defp update_metrics(%AK{mode: :cpu_util} = ak),
+    do: Map.replace!(ak, :metrics_value, :cpu_sup.util())
+
   defp schedule_update() do
     Process.send_after(self(), :update_cpu_metrics, @update_interval)
   end

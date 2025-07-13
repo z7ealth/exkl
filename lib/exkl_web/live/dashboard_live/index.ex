@@ -10,34 +10,13 @@ defmodule ExklWeb.DashboardLive.Index do
   def render(assigns) do
     ~H"""
     <Layouts.app flash={@flash}>
-      <div class="flex flex-col md:flex-row justify-center items-center md:items-start gap-6">
-        <div class="card w-96 bg-base-300 card-xs shadow-sm p-8">
+      <div class="grid grid-cols-2 justify-center items-center md:items-start gap-6">
+        <div class="card bg-base-300 card-xs shadow-sm p-8">
           <div class="card-body flex flex-col items-center">
             <div class="avatar">
               <div class="w-24 rounded">
                 <img src={~p"/images/exkl_logo.png"} />
               </div>
-            </div>
-            <div class="my-4">
-              <.form :let={f} for={nil}>
-                <div class="flex gap-2">
-                  <.input
-                    field={f[:mode]}
-                    type="radio"
-                    phx-click="change_mode"
-                    phx-value-mode={:cpu_temp_c}
-                    label="Temperature C°"
-                    checked
-                  />
-                  <.input
-                    field={f[:mode]}
-                    phx-click="change_mode"
-                    phx-value-mode={:cpu_temp_f}
-                    label="Temperature F°"
-                    type="radio"
-                  />
-                </div>
-              </.form>
             </div>
             <div class="divider" />
             <.list>
@@ -48,14 +27,56 @@ defmodule ExklWeb.DashboardLive.Index do
           </div>
         </div>
 
-        <div class="stats shadow bg-base-300 text-base-content">
-          <div class="stat">
-            <div class="stat-figure">
-              <.icon name="hero-cpu-chip" class="w-8 h-8" />
+        <div class="flex flex-col gap-2">
+          <div class="stats shadow bg-base-300 text-base-content">
+            <div class="stat">
+              <div class="stat-figure">
+                <.icon name="hero-cpu-chip" class="w-8 h-8" />
+              </div>
+              <div :if={@ak.mode == :cpu_temp_c} class="stat-title">Temperature °C</div>
+              <div :if={@ak.mode == :cpu_temp_f} class="stat-title">Temperature °F</div>
+              <div :if={@ak.mode == :cpu_util} class="stat-title">CPU Utilization</div>
+              <div :if={@ak.mode == :cpu_temp_c} class="stat-value text-primary">
+                {trunc(@ak.metrics_value)} °C
+              </div>
+              <div :if={@ak.mode == :cpu_temp_f} class="stat-value text-primary">
+                {trunc(@ak.metrics_value)} °F
+              </div>
+              <div :if={@ak.mode == :cpu_util} class="stat-value text-primary">
+                {trunc(@ak.metrics_value)}%
+              </div>
             </div>
-            <div :if={@ak.mode == :cpu_temp_c} class="stat-title">Temperature C°</div>
-            <div :if={@ak.mode == :cpu_temp_f} class="stat-title">Temperature F°</div>
-            <div class="stat-value text-primary">{trunc(@ak.metrics_value)}°</div>
+          </div>
+
+          <div class="card bg-base-300 card-xs shadow-sm p-8">
+            <div class="card-body flex flex-col items-center">
+              <.form :let={f} for={nil}>
+                <div class="flex flex-col gap-2">
+                  <.input
+                    field={f[:mode]}
+                    type="radio"
+                    phx-click="change_mode"
+                    phx-value-mode={:cpu_temp_c}
+                    label="Temperature °C"
+                    checked
+                  />
+                  <.input
+                    field={f[:mode]}
+                    phx-click="change_mode"
+                    phx-value-mode={:cpu_temp_f}
+                    label="Temperature °F"
+                    type="radio"
+                  />
+                  <.input
+                    field={f[:mode]}
+                    phx-click="change_mode"
+                    phx-value-mode={:cpu_util}
+                    label="CPU Utilization"
+                    type="radio"
+                  />
+                </div>
+              </.form>
+            </div>
           </div>
         </div>
       </div>
@@ -89,6 +110,12 @@ defmodule ExklWeb.DashboardLive.Index do
   @impl true
   def handle_event("change_mode", %{"mode" => "cpu_temp_f"}, socket) do
     Exkl.Core.change_mode(:cpu_temp_f)
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("change_mode", %{"mode" => "cpu_util"}, socket) do
+    Exkl.Core.change_mode(:cpu_util)
     {:noreply, socket}
   end
 

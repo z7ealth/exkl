@@ -16,7 +16,7 @@ git clone https://github.com/z7ealth/exkl.git
 
 - [x] Show CPU temperature C°
 - [x] Show CPU temperature F°
-- [ ] Show CPU Utilization
+- [x] Show CPU Utilization
 - [ ] Systemd service
 
 

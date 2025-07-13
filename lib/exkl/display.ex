@@ -89,6 +89,8 @@ defmodule Exkl.Display do
         # Default case for `DisplayMode::Celsius`
         :start ->
           List.replace_at(base_data, 1, @display_modes[:start])
+        :cpu_util ->
+          List.replace_at(base_data, 1, @display_modes[:utilization])
         :cpu_temp_f ->
           List.replace_at(base_data, 1, @display_modes[:fahrenheit])
         _ ->
