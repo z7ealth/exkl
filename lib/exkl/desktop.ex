@@ -18,13 +18,21 @@ defmodule Exkl.Desktop do
 
     :wxFrame.setIcon(frame, build_icon())
     :wxFrame.show(frame)
+    :wxFrame.connect(frame, :close_window)
     #:wxFrame.maximize(frame)
 
-    state = %{task_bar: task_bar, web_view: web_view}
+    state = %{frame: frame, task_bar: task_bar, web_view: web_view}
     {frame, state}
   end
 
+  def handle_event({:wx, _, _, _, {:wxClose, :close_window}}, %{frame: frame} = state) do
+    :wxFrame.hide(frame)
+    {:noreply, state}
+  end
+
   def handle_event({:wx, _, _, _, {listener, action}}, state) do
+    dbg(listener)
+    dbg(action)
     {:noreply, state}
   end
 

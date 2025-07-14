@@ -49,7 +49,7 @@ defmodule Exkl.Display do
 
   @impl true
   def terminate(reason, device) do
-    Logger.info(
+    Logger.debug(
       "Exkl.Display terminating. Closing HID device handle: #{inspect(device.handle)}. Reason: #{reason}"
     )
 
