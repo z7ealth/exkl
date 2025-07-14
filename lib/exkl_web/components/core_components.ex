@@ -216,7 +216,7 @@ defmodule ExklWeb.CoreComponents do
             name={@name}
             value="true"
             checked={@checked}
-            class={@class || "radio radio-sm"}
+            class={@class || "radio radio-sm radio-primary"}
             {@rest}
           />{@label}
         </span>
