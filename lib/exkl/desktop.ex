@@ -2,7 +2,7 @@ defmodule Exkl.Desktop do
   @behaviour :wx_object
 
   @title "EXKL"
-  @size {800, 800}
+  @size {1000, 750}
   @icon_path Path.join(:code.priv_dir(:exkl), "static/images/exkl_logo.png")
 
   require Logger
@@ -24,6 +24,8 @@ defmodule Exkl.Desktop do
     :wxFrame.show(frame)
     :wxFrame.connect(frame, :close_window)
     :wxTaskBarIcon.connect(task_bar, :command_menu_selected)
+    :wxFrame.setMinSize(frame, @size)
+    :wxFrame.setMaxSize(frame, @size)
 
     state = %{frame: frame, task_bar: task_bar, web_view: web_view}
     {frame, state}
@@ -53,7 +55,7 @@ defmodule Exkl.Desktop do
     :wxTaskBarIcon.setIcon(task_bar, build_icon())
 
     task_bar
-   end
+  end
 
   def terminate(:normal, state) do
     :wxWindow.destroy(state.web_view)
