@@ -11,6 +11,7 @@ defmodule Exkl.GUI do
   def init(_args) do
 
     desktop = Exkl.Desktop.start_link()
+
     {:ok, desktop}
   end
 end

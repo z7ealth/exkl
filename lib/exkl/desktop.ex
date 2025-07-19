@@ -13,6 +13,7 @@ defmodule Exkl.Desktop do
 
   def init(_args \\ []) do
     wx = :wx.new()
+    :wx.debug(:verbose)
 
     frame = :wxFrame.new(wx, -1, @title, size: @size)
 
@@ -23,7 +24,6 @@ defmodule Exkl.Desktop do
     :wxFrame.show(frame)
     :wxFrame.connect(frame, :close_window)
     :wxTaskBarIcon.connect(task_bar, :command_menu_selected)
-    # :wxFrame.maximize(frame)
 
     state = %{frame: frame, task_bar: task_bar, web_view: web_view}
     {frame, state}
@@ -43,29 +43,27 @@ defmodule Exkl.Desktop do
   def handle_event({:wx, 2, _, _, {:wxCommand, :command_menu_selected, _, _, _}}, state) do
     Logger.info("Shutting down EXKL.")
 
-    {:stop, :shutdown, state}
+    {:stop, :normal, state}
   end
 
-  defp build_webview(frame) do
-    :wxWebView.new(frame, -1, url: "http://localhost:4000")
-  end
+  defp build_webview(frame), do: :wxWebView.new(frame, 0, url: "http://localhost:4000")
 
   defp build_taskbar do
     task_bar = :wxTaskBarIcon.new(createPopupMenu: fn -> build_menu() end)
     :wxTaskBarIcon.setIcon(task_bar, build_icon())
 
     task_bar
-  end
+   end
 
-  def terminate(:shutdown, state) do
+  def terminate(:normal, state) do
+    :wxWindow.destroy(state.web_view)
     :wxTaskBarIcon.destroy(state.task_bar)
+    :wxFrame.close(state.frame)
     :wxFrame.destroy(state.frame)
 
     :wx.destroy()
 
-    :timer.sleep(1000)
-
-  	System.stop()
+    :ok
   end
 
   defp build_menu() do
