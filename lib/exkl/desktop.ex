@@ -21,7 +21,6 @@ defmodule Exkl.Desktop do
     web_view = build_webview(frame)
 
     :wxFrame.setIcon(frame, build_icon())
-    :wxFrame.show(frame)
     :wxFrame.connect(frame, :close_window)
     :wxTaskBarIcon.connect(task_bar, :command_menu_selected)
     :wxFrame.setMinSize(frame, @size)
