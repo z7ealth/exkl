@@ -131,10 +131,14 @@ After=graphical-session.target
 [Service]
 Type=simple
 ExecStart=$EXEC_PATH start
+ExecStop=$EXEC_PATH stop
 Restart=on-failure
 RestartSec=5s
 Environment=PHX_SERVER=true
 Environment=SECRET_KEY_BASE=$(echo "$SECRET_KEY_BASE")
+
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=default.target

@@ -47,7 +47,7 @@ defmodule Exkl.Desktop do
     {:stop, :normal, state}
   end
 
-  defp build_webview(frame), do: :wxWebView.new(frame, 0, url: "http://localhost:4000")
+  defp build_webview(frame), do: :wxWebView.new(frame, 0, url: "http://localhost:4500")
 
   defp build_taskbar do
     task_bar = :wxTaskBarIcon.new(createPopupMenu: fn -> build_menu() end)

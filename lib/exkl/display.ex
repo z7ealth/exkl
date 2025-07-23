@@ -33,7 +33,7 @@ defmodule Exkl.Display do
     device = %{handle: HidApiNif.open(@vendor_id, @products[:ak500])}
     PubSub.subscribe(Exkl.PubSub, @pubsub_topic)
 
-    HidApiNif.write(device.handle, get_data(0.0, "start"))
+    HidApiNif.write(device.handle, get_data(0.0, :start))
 
     {:ok, device}
   end
