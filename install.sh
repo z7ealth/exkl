@@ -127,15 +127,18 @@ cat <<EOF > "$SERVICE_DIR/$SERVICE_FILE"
 [Unit]
 Description=EXKL Application (User Service)
 After=graphical-session.target
+Requires=graphical-session.target
 
 [Service]
 Type=simple
+ExecStartPre=/bin/sh -c 'while [ -z "$DISPLAY" ]; do echo "Waiting for DISPLAY..."; sleep 1; DISPLAY=$(printenv DISPLAY); done'
 ExecStart=$EXEC_PATH start
 ExecStop=$EXEC_PATH stop
 Restart=on-failure
 RestartSec=5s
 Environment=PHX_SERVER=true
 Environment=SECRET_KEY_BASE=$(echo "$SECRET_KEY_BASE")
+Environment=DISPLAY=$DISPLAY
 
 StandardOutput=journal
 StandardError=journal
