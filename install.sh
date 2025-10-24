@@ -92,6 +92,21 @@ else
   echo "Udev rule already exists in $UDEV_RULE_FILE"
 fi
 
+GROUP_NAME="plugdev"
+
+# Check if group exists
+if getent group "$GROUP_NAME" > /dev/null 2>&1; then
+    echo "Group '$GROUP_NAME' already exists."
+else
+    echo "Group '$GROUP_NAME' does not exist. Creating it..."
+    if sudo groupadd "$GROUP_NAME"; then
+        echo "Group '$GROUP_NAME' created successfully."
+    else
+        echo "Failed to create group '$GROUP_NAME'."
+        exit 1
+    fi
+fi
+
 # === Add current user to plugdev group ===
 if groups "$USER" | grep -qv '\bplugdev\b'; then
   echo "Adding user '$USER' to plugdev group..."
