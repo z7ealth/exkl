@@ -11,7 +11,7 @@ SERVICE_FILE="${SERVICE_NAME}.service"
 SERVICE_DIR="$HOME/.config/systemd/user"
 EXEC_PATH="$HOME/.config/exkl/bin/exkl"
 UDEV_RULE_FILE="/etc/udev/rules.d/99-hid.rules"
-UDEV_RULE='SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3633", ATTRS{idProduct}=="0003", MODE="0660", GROUP="plugdev"'
+UDEV_RULE='SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3633", ATTRS{idProduct}=="0003", MODE="0660", GROUP="input"'
 
 log() {
   echo "[+] $1"
@@ -92,7 +92,7 @@ else
   echo "Udev rule already exists in $UDEV_RULE_FILE"
 fi
 
-GROUP_NAME="plugdev"
+GROUP_NAME="input"
 
 # Check if group exists
 if getent group "$GROUP_NAME" > /dev/null 2>&1; then
@@ -108,11 +108,11 @@ else
 fi
 
 # === Add current user to plugdev group ===
-if groups "$USER" | grep -qv '\bplugdev\b'; then
-  echo "Adding user '$USER' to plugdev group..."
-  sudo usermod -aG plugdev "$USER"
+if groups "$USER" | grep -qv '\binput\b'; then
+  echo "Adding user '$USER' to input group..."
+  sudo usermod -aG input "$USER"
 else
-  echo "User '$USER' is already in plugdev group."
+  echo "User '$USER' is already on input group."
 fi
 
 # === Reload udev rules ===
