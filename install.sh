@@ -3,157 +3,148 @@ set -euo pipefail
 
 APP_NAME="exkl"
 ENV="prod"
-RELEASE_DIR="_build/$ENV/rel/$APP_NAME"
+
 NIFS_DIR="priv/nifs"
 EXKL_DIR="$HOME/.config/exkl"
+
 SERVICE_NAME="exkl"
-SERVICE_FILE="${SERVICE_NAME}.service"
+SERVICE_FILE="$SERVICE_NAME.service"
 SERVICE_DIR="$HOME/.config/systemd/user"
-EXEC_PATH="$HOME/.config/exkl/bin/exkl"
-UDEV_RULE_FILE="/etc/udev/rules.d/99-hid.rules"
-UDEV_RULE='SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3633", ATTRS{idProduct}=="0003", MODE="0660", GROUP="input"'
+EXEC_PATH="$EXKL_DIR/bin/exkl"
+
+AUTOSTART_DIR="$HOME/.config/autostart"
+AUTOSTART_FILE="$AUTOSTART_DIR/exkl.desktop"
+
+UDEV_GROUP="exkl"
+UDEV_RULE_FILE="/etc/udev/rules.d/99-exkl-hid.rules"
+UDEV_RULE='SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3633", ATTRS{idProduct}=="0003", MODE="0660", GROUP="exkl", TAG+="uaccess"'
+
+NEED_RELOGIN=false
 
 log() {
   echo "[+] $1"
 }
 
-# Check for required commands
-command -v mix &>/dev/null || {
-  echo "Error: mix command not found. Please install Elixir and Erlang: https://elixir-lang.org/"
+die() {
+  echo "Error: $1" >&2
   exit 1
 }
 
-command -v gcc &>/dev/null || {
-  echo "Error: gcc command not found."
-  exit 1
-}
+command -v mix >/dev/null 2>&1 || die "mix not found. Install Elixir/Erlang."
+command -v gcc >/dev/null 2>&1 || die "gcc not found."
+command -v sudo >/dev/null 2>&1 || die "sudo not found."
+command -v systemctl >/dev/null 2>&1 || die "systemctl not found."
 
-if [ ! -d "$NIFS_DIR" ]; then
-  mkdir -p "$NIFS_DIR"
-  echo "Created directory: $NIFS_DIR"
-else
-  echo "Directory already exists: $NIFS_DIR"
-fi
+install -d "$NIFS_DIR"
 
-# Compile NIFs
-gcc -fPIC -shared -I/usr/lib/erlang/usr/include c_src/sensors_nif.c -o priv/nifs/sensors_nif.so -lsensors
-gcc -fPIC -shared -I/usr/lib/erlang/usr/include -I/usr/include/hidapi c_src/hid_api_nif.c -o priv/nifs/hid_api_nif.so -lhidapi-hidraw
+log "Compiling NIFs..."
 
-# Build elixir app
+gcc -fPIC -shared \
+  -I/usr/lib/erlang/usr/include \
+  c_src/sensors_nif.c \
+  -o "$NIFS_DIR/sensors_nif.so" \
+  -lsensors
+
+gcc -fPIC -shared \
+  -I/usr/lib/erlang/usr/include \
+  -I/usr/include/hidapi \
+  c_src/hid_api_nif.c \
+  -o "$NIFS_DIR/hid_api_nif.so" \
+  -lhidapi-hidraw
 
 log "Fetching dependencies..."
 mix deps.get
 
-# Generate or reuse SECRET_KEY_BASE
 if [[ -z "${SECRET_KEY_BASE:-}" ]]; then
   log "Generating SECRET_KEY_BASE..."
-  SECRET_KEY_BASE=$(mix phx.gen.secret)
+  SECRET_KEY_BASE="$(mix phx.gen.secret)"
 fi
 
 log "Using SECRET_KEY_BASE=${SECRET_KEY_BASE:0:8}...(hidden)"
 
 log "Fetching production dependencies..."
-MIX_ENV=$ENV mix deps.get --only prod
+MIX_ENV="$ENV" mix deps.get --only prod
 
 log "Compiling project..."
-MIX_ENV=$ENV mix compile
+MIX_ENV="$ENV" mix compile
 
 log "Deploying assets..."
-MIX_ENV=$ENV mix assets.deploy
-
-log "Generating release configuration..."
-mix phx.gen.release
+MIX_ENV="$ENV" mix assets.deploy
 
 log "Building release..."
-MIX_ENV=$ENV mix release --overwrite
+MIX_ENV="$ENV" mix release --overwrite
 
-# Check if the directory exists
 if [ -d "$EXKL_DIR" ]; then
-  # Directory is not empty
-  echo -e "The directory $EXKL_DIR is not empty. Existing configuration will be lost.\n"
-  read -p "Do you want to proceed? (y/n):" choice
+  echo
+  echo "The directory $EXKL_DIR already exists."
+  read -r -p "Replace existing installation? (y/n): " choice
+
   case "$choice" in
-    y|Y ) echo -e "Deleting current configuration\n"; rm -rf $EXKL_DIR;;
-    n|N ) echo "Exiting."; exit 1;;
-    * ) echo "Invalid choice. Exiting."; exit 1;;
+    y|Y)
+      log "Stopping existing service..."
+      systemctl --user stop "$SERVICE_NAME" 2>/dev/null || true
+      systemctl --user disable "$SERVICE_NAME" 2>/dev/null || true
+      rm -rf "$EXKL_DIR"
+      ;;
+    n|N)
+      echo "Exiting."
+      exit 0
+      ;;
+    *)
+      die "Invalid choice."
+      ;;
   esac
 fi
 
-echo -e "Creating directory $EXKL_DIR\n"
-mkdir $EXKL_DIR
-cp -rf ./_build/prod/rel/exkl/* "$HOME/.config/exkl"
+log "Installing release to $EXKL_DIR..."
+install -d "$EXKL_DIR"
+cp -a "_build/$ENV/rel/$APP_NAME/." "$EXKL_DIR/"
 
-echo -e "\nCreating udev rule for HID device..."
+log "Creating HID udev rule..."
 
-if [ ! -f "$UDEV_RULE_FILE" ] || ! grep -q "$UDEV_RULE" "$UDEV_RULE_FILE"; then
-  echo "$UDEV_RULE" | sudo tee "$UDEV_RULE_FILE" > /dev/null
-  echo "Udev rule written to $UDEV_RULE_FILE"
-else
-  echo "Udev rule already exists in $UDEV_RULE_FILE"
+if ! getent group "$UDEV_GROUP" >/dev/null 2>&1; then
+  sudo groupadd "$UDEV_GROUP"
 fi
 
-GROUP_NAME="input"
-
-# Check if group exists
-if getent group "$GROUP_NAME" > /dev/null 2>&1; then
-    echo "Group '$GROUP_NAME' already exists."
-else
-    echo "Group '$GROUP_NAME' does not exist. Creating it..."
-    if sudo groupadd "$GROUP_NAME"; then
-        echo "Group '$GROUP_NAME' created successfully."
-    else
-        echo "Failed to create group '$GROUP_NAME'."
-        exit 1
-    fi
+if ! groups "$USER" | grep -qw "$UDEV_GROUP"; then
+  sudo usermod -aG "$UDEV_GROUP" "$USER"
+  NEED_RELOGIN=true
 fi
 
-# === Add current user to plugdev group ===
-if groups "$USER" | grep -qv '\binput\b'; then
-  echo "Adding user '$USER' to input group..."
-  sudo usermod -aG input "$USER"
-else
-  echo "User '$USER' is already on input group."
-fi
+echo "$UDEV_RULE" | sudo tee "$UDEV_RULE_FILE" >/dev/null
 
-# === Reload udev rules ===
-echo "Reloading udev rules..."
-sudo udevadm control --reload
+sudo udevadm control --reload-rules
 sudo udevadm trigger
 
-echo -e "\nUdev rule applied."
+log "Udev rule installed at $UDEV_RULE_FILE"
 
-echo -e "Creating $SERVICE_NAME user systemd service...\n"
+log "Creating user systemd service..."
 
-# Ensure service directory exists
-mkdir -p "$SERVICE_DIR"
+install -d "$SERVICE_DIR"
 
-# Remove old service if exists
 if [ -f "$SERVICE_DIR/$SERVICE_FILE" ]; then
-  echo "Disabling and stopping old service..."
-  systemctl --user disable "$SERVICE_NAME"
-  systemctl --user stop "$SERVICE_NAME"
-  echo "Deleting previous service file..."
-  rm "$SERVICE_DIR/$SERVICE_FILE"
-  echo "Old service file deleted."
+  systemctl --user stop "$SERVICE_NAME" 2>/dev/null || true
+  systemctl --user disable "$SERVICE_NAME" 2>/dev/null || true
+  rm -f "$SERVICE_DIR/$SERVICE_FILE"
 fi
 
-# Create new service file
-cat <<EOF > "$SERVICE_DIR/$SERVICE_FILE"
+cat > "$SERVICE_DIR/$SERVICE_FILE" <<EOF
 [Unit]
-Description=EXKL Application (User Service)
+Description=EXKL Application
 After=graphical-session.target
-Requires=graphical-session.target
+PartOf=graphical-session.target
 
 [Service]
 Type=simple
-ExecStartPre=/bin/sh -c 'while [ -z "$DISPLAY" ]; do echo "Waiting for DISPLAY..."; sleep 1; DISPLAY=$(printenv DISPLAY); done'
+WorkingDirectory=$EXKL_DIR
 ExecStart=$EXEC_PATH start
 ExecStop=$EXEC_PATH stop
 Restart=on-failure
 RestartSec=5s
+
 Environment=PHX_SERVER=true
-Environment=SECRET_KEY_BASE=$(echo "$SECRET_KEY_BASE")
-Environment=DISPLAY=$DISPLAY
+Environment=SECRET_KEY_BASE=$SECRET_KEY_BASE
+Environment=GTK_USE_PORTAL=1
 
 StandardOutput=journal
 StandardError=journal
@@ -162,11 +153,55 @@ StandardError=journal
 WantedBy=default.target
 EOF
 
-# Reload user systemd and enable service
-systemctl --user daemon-reexec
+log "Importing current graphical session environment..."
+
+systemctl --user import-environment \
+  DISPLAY \
+  WAYLAND_DISPLAY \
+  XDG_RUNTIME_DIR \
+  DBUS_SESSION_BUS_ADDRESS \
+  XDG_CURRENT_DESKTOP \
+  2>/dev/null || true
+
+log "Reloading user systemd..."
 systemctl --user daemon-reload
-systemctl --user enable --now "$SERVICE_NAME"
+systemctl --user enable "$SERVICE_NAME"
 
-echo -e "\n$SERVICE_NAME user service has been installed and started.\n"
+if [ "$NEED_RELOGIN" = true ]; then
+  echo
+  echo "You were added to the '$UDEV_GROUP' group."
+  echo "EXKL may not access the HID device until you log out and back in."
+  echo "The service was installed but not started yet."
+else
+  systemctl --user restart "$SERVICE_NAME"
+fi
 
-echo -e "Please log out and log back in for group changes to take effect."
+log "Installing XDG autostart fallback..."
+
+install -d "$AUTOSTART_DIR"
+
+cat > "$AUTOSTART_FILE" <<EOF
+[Desktop Entry]
+Type=Application
+Name=EXKL
+Comment=EXKL Application
+Exec=/bin/sh -lc 'systemctl --user import-environment DISPLAY WAYLAND_DISPLAY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS XDG_CURRENT_DESKTOP; systemctl --user restart exkl.service'
+Terminal=false
+X-GNOME-Autostart-enabled=true
+EOF
+
+echo
+echo "EXKL installed."
+
+if [ "$NEED_RELOGIN" = true ]; then
+  echo
+  echo "Please log out and back in, then start it with:"
+  echo
+  echo "systemctl --user start exkl.service"
+fi
+
+echo
+echo "For Hyprland, add this to ~/.config/hypr/hyprland.conf:"
+echo
+echo "exec-once = systemctl --user import-environment DISPLAY WAYLAND_DISPLAY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS XDG_CURRENT_DESKTOP"
+echo "exec-once = systemctl --user restart exkl.service"
