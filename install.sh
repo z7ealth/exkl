@@ -199,9 +199,3 @@ if [ "$NEED_RELOGIN" = true ]; then
   echo
   echo "systemctl --user start exkl.service"
 fi
-
-echo
-echo "For Hyprland, add this to ~/.config/hypr/hyprland.conf:"
-echo
-echo "exec-once = systemctl --user import-environment DISPLAY WAYLAND_DISPLAY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS XDG_CURRENT_DESKTOP"
-echo "exec-once = systemctl --user restart exkl.service"
