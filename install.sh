@@ -28,7 +28,7 @@ UDEV_RULES=(
 )
 LEGACY_UDEV_RULE_FILE="/etc/udev/rules.d/99-exkl-hid.rules"
 
-NEED_RELOGIN=false
+NEED_REBOOT=false
 
 log() {
   echo "[+] $1"
@@ -160,7 +160,7 @@ fi
 
 if ! groups "$USER" | grep -qw "$UDEV_GROUP"; then
   sudo usermod -aG "$UDEV_GROUP" "$USER"
-  NEED_RELOGIN=true
+  NEED_REBOOT=true
 fi
 
 if [ -f "$LEGACY_UDEV_RULE_FILE" ]; then
@@ -218,15 +218,7 @@ EOF
 log "Reloading user systemd..."
 systemctl --user daemon-reload
 systemctl --user enable "$SERVICE_NAME"
-
-if [ "$NEED_RELOGIN" = true ]; then
-  echo
-  echo "You were added to the '$UDEV_GROUP' group."
-  echo "EXKL may not access DeepCool HID devices until you log out and back in."
-  echo "The service was installed but not started yet."
-else
-  systemctl --user restart "$SERVICE_NAME"
-fi
+systemctl --user restart "$SERVICE_NAME"
 
 log "Installing XDG autostart fallback..."
 
@@ -276,8 +268,7 @@ echo "Logs:       journalctl --user -u exkl.service -f"
 echo "Uninstall:  ./uninstall.sh"
 echo
 
-if [ "$NEED_RELOGIN" = true ]; then
-  echo "Log out and back in, then start EXKL with:"
-  echo "  systemctl --user start exkl.service"
+if [ "$NEED_REBOOT" = true ]; then
+  echo "Reboot:     you were added to the '$UDEV_GROUP' group — reboot before HID devices are accessible"
   echo
 fi

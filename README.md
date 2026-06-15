@@ -91,7 +91,7 @@ After install:
 - **Status:** `systemctl --user status exkl.service`
 - **Observer:** `~/.config/exkl/bin/exkl remote`, then `:observer.start()`
 
-If you were added to the `exkl` group, **log out and back in** before the HID device is accessible.
+If you were added to the `exkl` group during install, **reboot** before EXKL can access DeepCool HID devices. The service is enabled and starts automatically on login.
 
 ### GNOME dock and launcher
 

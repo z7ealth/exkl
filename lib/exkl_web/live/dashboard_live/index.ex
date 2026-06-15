@@ -15,7 +15,7 @@ defmodule ExklWeb.DashboardLive.Index do
   @modes [
     %{id: :cpu_temp_c, label: "°C", title: "Temperature °C", icon: "hero-fire"},
     %{id: :cpu_temp_f, label: "°F", title: "Temperature °F", icon: "hero-fire"},
-    %{id: :cpu_util, label: "CPU", title: "CPU Utilization", icon: "hero-cpu-chip"}
+    %{id: :cpu_util, label: "CPU", title: "Utilization %", icon: "hero-cpu-chip"}
   ]
 
   @impl true
