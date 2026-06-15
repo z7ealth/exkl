@@ -4,6 +4,7 @@ defmodule Exkl.AK do
   @type t() :: %__MODULE__{
           metrics_value: float(),
           mode: modes(),
+          cpu_util: float() | nil,
           gpu_temp_c: float() | nil,
           gpu_util: float() | nil,
           cpu_freq_mhz: float() | nil,
@@ -14,6 +15,7 @@ defmodule Exkl.AK do
   defstruct [
     metrics_value: 0.0,
     mode: :cpu_temp_c,
+    cpu_util: nil,
     gpu_temp_c: nil,
     gpu_util: nil,
     cpu_freq_mhz: nil,

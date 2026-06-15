@@ -1,10 +1,10 @@
 defmodule Exkl.Display do
   @moduledoc """
-  Supervises one worker per connected HID display device.
+  Supervises one worker per connected DeepCool HID display.
 
-  Each supported device model implements `Exkl.HidDevice` and is listed in
-  `Exkl.HidDevice.Registry`. On startup, every registered model is probed via
-  USB vendor/product ID; connected devices receive live metrics over PubSub.
+  Devices are discovered automatically via `hidapi` enumeration (vendor `0x3633`),
+  matching the approach used by
+  [deepcool-digital-linux](https://github.com/Nortank12/deepcool-digital-linux).
   """
 
   use Supervisor
@@ -14,7 +14,7 @@ defmodule Exkl.Display do
   alias Exkl.Display.Worker
   alias Exkl.HidApiNif
   alias Exkl.HidDevice
-  alias Exkl.HidDevice.Registry
+  alias Exkl.HidDevice.Discovery
 
   def start_link(init_arg \\ []) do
     Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -23,26 +23,27 @@ defmodule Exkl.Display do
   @impl Supervisor
   def init(_arg) do
     children =
-      Registry.all()
+      Discovery.discover()
       |> Enum.flat_map(&start_worker/1)
 
     case children do
       [] ->
-        Logger.info("No HID display devices connected")
+        Logger.info("No supported DeepCool HID display devices connected")
 
-      _ ->
-        Logger.info("Started #{length(children)} HID display worker(s)")
+      workers ->
+        Logger.info("Started #{length(workers)} HID display worker(s)")
     end
 
     Supervisor.init(children, strategy: :one_for_one)
   end
 
-  defp start_worker(device) do
+  defp start_worker({device, product_id}) do
     vendor_id = HidDevice.vendor_id(device)
-    product_id = HidDevice.product_id(device)
 
     case open_handle(vendor_id, product_id) do
       {:ok, handle} ->
+        Logger.info("Connected HID display: #{HidDevice.name(device)} (#{hex(vendor_id)}:#{hex(product_id)})")
+
         [
           %{
             id: {device.__struct__, product_id},
@@ -51,11 +52,7 @@ defmodule Exkl.Display do
         ]
 
       :error ->
-        Logger.debug(
-          "HID device not connected: #{HidDevice.name(device)} " <>
-            "(#{hex(vendor_id)}:#{hex(product_id)})"
-        )
-
+        Logger.warning("Failed to open HID display: #{HidDevice.name(device)}")
         []
     end
   end

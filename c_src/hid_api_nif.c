@@ -49,8 +49,6 @@ static ERL_NIF_TERM open_nif(ErlNifEnv *env, int argc,
   handle = hid_open(vendor_id, product_id, NULL);
 
   if (!handle) {
-    printf("Unable to open device\n");
-    hid_exit();
     return enif_make_int(env, 1);
   }
 
@@ -59,8 +57,7 @@ static ERL_NIF_TERM open_nif(ErlNifEnv *env, int argc,
       HID_DEVICE_RESOURCE_TYPE, sizeof(hid_device *));
 
   if (!res_handle) {
-    printf("Unable to create handle resource\n");
-    hid_exit();
+    hid_close(handle);
     return enif_make_int(env, 1);
   }
   *res_handle = handle;
@@ -126,8 +123,36 @@ static ERL_NIF_TERM write_nif(ErlNifEnv *env, int argc,
   return enif_make_int(env, 0);
 }
 
+static ERL_NIF_TERM enumerate_nif(ErlNifEnv *env, int argc,
+                                const ERL_NIF_TERM argv[]) {
+  int vendor_id = 0;
+
+  if (argc != 1 || !enif_get_int(env, argv[0], &vendor_id)) {
+    return enif_make_badarg(env);
+  }
+
+  struct hid_device_info *devices = hid_enumerate(vendor_id, 0);
+  struct hid_device_info *current = devices;
+  ERL_NIF_TERM list = enif_make_list(env, 0);
+
+  while (current != NULL) {
+    ERL_NIF_TERM entry =
+        enif_make_tuple2(env, enif_make_int(env, current->vendor_id),
+                         enif_make_int(env, current->product_id));
+    list = enif_make_list_cell(env, entry, list);
+    current = current->next;
+  }
+
+  hid_free_enumeration(devices);
+  return list;
+}
+
 // --- NIF Exports ---
 static ErlNifFunc nif_funcs[] = {
-    {"open", 2, open_nif}, {"close", 1, close_nif}, {"write", 2, write_nif}};
+    {"open", 2, open_nif},
+    {"close", 1, close_nif},
+    {"write", 2, write_nif},
+    {"enumerate", 1, enumerate_nif},
+};
 
 ERL_NIF_INIT(Elixir.Exkl.HidApiNif, nif_funcs, load, NULL, NULL, unload)

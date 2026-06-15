@@ -65,7 +65,10 @@ defmodule Exkl.Core do
         temp -> temp
       end
 
-    ak |> Map.replace!(:metrics_value, value) |> update_cpu_sensors()
+    ak
+    |> with_cpu_util()
+    |> Map.put(:metrics_value, value)
+    |> update_cpu_sensors()
   end
 
   defp update_cpu_metrics(%AK{mode: :cpu_temp_f} = ak) do
@@ -75,11 +78,20 @@ defmodule Exkl.Core do
         temp -> temp
       end
 
-    ak |> Map.replace!(:metrics_value, value) |> update_cpu_sensors()
+    ak
+    |> with_cpu_util()
+    |> Map.put(:metrics_value, value)
+    |> update_cpu_sensors()
   end
 
-  defp update_cpu_metrics(%AK{mode: :cpu_util} = ak),
-    do: ak |> Map.replace!(:metrics_value, :cpu_sup.util()) |> update_cpu_sensors()
+  defp update_cpu_metrics(%AK{mode: :cpu_util} = ak) do
+    ak
+    |> with_cpu_util()
+    |> then(fn ak -> Map.put(ak, :metrics_value, ak.cpu_util) end)
+    |> update_cpu_sensors()
+  end
+
+  defp with_cpu_util(ak), do: Map.put(ak, :cpu_util, :cpu_sup.util())
 
   defp update_cpu_sensors(ak) do
     ak
