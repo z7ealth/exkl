@@ -38,6 +38,10 @@ defmodule ExklWeb.DashboardLive.Index do
       |> assign(:gpu_chart_min, gpu_min)
       |> assign(:gpu_chart_max, gpu_max)
       |> assign(:gpu_icon, if(assigns.ak.mode == :cpu_util, do: "hero-bolt", else: "hero-fire"))
+      |> assign(:cpu_freq, format_freq(assigns.ak.cpu_freq_mhz))
+      |> assign(:gpu_freq, format_freq(assigns.ak.gpu_freq_mhz))
+      |> assign(:cpu_power, format_power(assigns.ak.cpu_power_w))
+      |> assign(:gpu_power, format_power(assigns.ak.gpu_power_w))
 
     ~H"""
     <Layouts.app flash={@flash}>
@@ -83,6 +87,8 @@ defmodule ExklWeb.DashboardLive.Index do
             icon="hero-cpu-chip"
             chart_id="cpu"
             value_id="metric-value"
+            freq={@cpu_freq}
+            power={@cpu_power}
           />
 
           <.metric_card
@@ -100,6 +106,8 @@ defmodule ExklWeb.DashboardLive.Index do
             icon={@gpu_icon}
             chart_id="gpu"
             value_id="gpu-metric-value"
+            freq={@gpu_freq}
+            power={@gpu_power}
           />
         </div>
 
@@ -235,6 +243,17 @@ defmodule ExklWeb.DashboardLive.Index do
 
   defp app_version do
     Application.spec(:exkl, :vsn) |> to_string()
+  end
+
+  defp format_freq(nil), do: nil
+  defp format_freq(mhz) when mhz >= 1000, do: "#{:erlang.float_to_binary(mhz / 1000, decimals: 2)} GHz"
+  defp format_freq(mhz), do: "#{round(mhz)} MHz"
+
+  defp format_power(nil), do: nil
+  defp format_power(watts), do: "#{format_decimal(watts, 1)} W"
+
+  defp format_decimal(value, decimals) do
+    :erlang.float_to_binary(value * 1.0, decimals: decimals)
   end
 
   defp metric_title(:cpu_temp_c), do: "CPU Temperature"

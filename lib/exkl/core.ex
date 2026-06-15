@@ -4,6 +4,7 @@ defmodule Exkl.Core do
   require Logger
 
   alias Phoenix.PubSub
+  alias Exkl.CpuSensors
   alias Exkl.GpuSensors
   alias Exkl.SensorsNif
   alias Exkl.AK
@@ -57,19 +58,54 @@ defmodule Exkl.Core do
       {:noreply, ak}
   end
 
-  defp update_cpu_metrics(%AK{mode: :cpu_temp_c} = ak),
-    do: Map.replace!(ak, :metrics_value, SensorsNif.get_cpu_temp_celsius())
+  defp update_cpu_metrics(%AK{mode: :cpu_temp_c} = ak) do
+    value =
+      case CpuSensors.temp_celsius() do
+        nil -> keep_or_default(ak.metrics_value)
+        temp -> temp
+      end
 
-  defp update_cpu_metrics(%AK{mode: :cpu_temp_f} = ak),
-    do: Map.replace!(ak, :metrics_value, SensorsNif.get_cpu_temp_fahrenheit())
+    ak |> Map.replace!(:metrics_value, value) |> update_cpu_sensors()
+  end
+
+  defp update_cpu_metrics(%AK{mode: :cpu_temp_f} = ak) do
+    value =
+      case CpuSensors.temp_fahrenheit() do
+        nil -> keep_or_default(ak.metrics_value)
+        temp -> temp
+      end
+
+    ak |> Map.replace!(:metrics_value, value) |> update_cpu_sensors()
+  end
 
   defp update_cpu_metrics(%AK{mode: :cpu_util} = ak),
-    do: Map.replace!(ak, :metrics_value, :cpu_sup.util())
+    do: ak |> Map.replace!(:metrics_value, :cpu_sup.util()) |> update_cpu_sensors()
+
+  defp update_cpu_sensors(ak) do
+    ak
+    |> update_cpu_freq()
+    |> update_cpu_power()
+  end
+
+  defp update_cpu_freq(ak) do
+    case CpuSensors.frequency_mhz() do
+      nil -> Map.put(ak, :cpu_freq_mhz, nil)
+      freq -> Map.put(ak, :cpu_freq_mhz, freq)
+    end
+  end
+
+  defp update_cpu_power(ak) do
+    case CpuSensors.power_watts() do
+      nil -> Map.put(ak, :cpu_power_w, nil)
+      power -> Map.put(ak, :cpu_power_w, power)
+    end
+  end
 
   defp update_gpu_metrics(ak) do
     ak
     |> update_gpu_temp()
     |> update_gpu_util()
+    |> update_gpu_sensors()
   end
 
   defp update_gpu_temp(ak) do
@@ -86,7 +122,30 @@ defmodule Exkl.Core do
     end
   end
 
+  defp update_gpu_freq(ak) do
+    case GpuSensors.frequency_mhz() do
+      nil -> Map.put(ak, :gpu_freq_mhz, nil)
+      freq -> Map.put(ak, :gpu_freq_mhz, freq)
+    end
+  end
+
+  defp update_gpu_power(ak) do
+    case GpuSensors.power_watts() do
+      nil -> Map.put(ak, :gpu_power_w, nil)
+      power -> Map.put(ak, :gpu_power_w, power)
+    end
+  end
+
+  defp update_gpu_sensors(ak) do
+    ak
+    |> update_gpu_freq()
+    |> update_gpu_power()
+  end
+
   defp schedule_update() do
     Process.send_after(self(), :update_cpu_metrics, @update_interval)
   end
+
+  defp keep_or_default(value) when value < 0, do: 0.0
+  defp keep_or_default(value), do: value
 end

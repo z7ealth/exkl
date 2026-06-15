@@ -233,10 +233,39 @@ html {
   margin-top: 0.85rem;
 }
 
+.metric-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
 .metric-card-value {
   display: flex;
   align-items: baseline;
   gap: 0.25rem;
+}
+
+.metric-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.75rem;
+}
+
+.metric-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: oklch(from var(--color-base-content) l c h / 0.55);
+}
+
+.metric-meta-icon {
+  width: 0.75rem;
+  height: 0.75rem;
+  opacity: 0.7;
 }
 
 .metric-meter {

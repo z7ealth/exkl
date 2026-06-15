@@ -57,14 +57,20 @@ defmodule Exkl.HardwareInfo do
   end
 
   defp find_gpu_pci_line(output) do
-    output
-    |> String.split("\n")
-    |> Enum.find(fn line ->
-      String.match?(
-        line,
-        ~r/(VGA compatible controller|3D controller|Display controller)/i
-      )
-    end)
+    lines =
+      output
+      |> String.split("\n")
+      |> Enum.filter(fn line ->
+        String.match?(
+          line,
+          ~r/(VGA compatible controller|3D controller|Display controller)/i
+        )
+      end)
+
+    preferred =
+      Enum.find(lines, &String.match?(&1, ~r/(NVIDIA|AMD\/ATI|Advanced Micro Devices|Arc)/i))
+
+    preferred || Enum.find(lines, &String.match?(&1, ~r/Intel/i)) || List.first(lines)
   end
 
   defp pci_description(line) do
@@ -128,6 +134,12 @@ defmodule Exkl.HardwareInfo do
 
       String.match?(segment, ~r/^Arc /i) ->
         "Intel " <> segment
+
+      String.match?(segment, ~r/^(UHD |Iris |HD Graphics|Xe )/i) ->
+        "Intel " <> segment
+
+      String.match?(segment, ~r/Graphics/i) ->
+        "Intel " <> String.trim_leading(segment, "Intel ")
 
       true ->
         segment

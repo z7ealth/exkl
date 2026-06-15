@@ -45,15 +45,19 @@ defmodule Exkl.Display do
     HidApiNif.write(device.handle, get_data(metrics_value, mode))
 
     {:noreply, device}
+  rescue
+    e ->
+      Logger.error("Exkl.Display failed to write metrics: #{inspect(e)}")
+      {:noreply, device}
   end
 
   @impl true
   def terminate(reason, device) do
     Logger.debug(
-      "Exkl.Display terminating. Closing HID device handle: #{inspect(device.handle)}. Reason: #{reason}"
+      "Exkl.Display terminating. Closing HID device handle: #{inspect(device.handle)}. Reason: #{inspect(reason)}"
     )
 
-    HidApiNif.close(device)
+    HidApiNif.close(device.handle)
     :ok
   end
 
@@ -66,6 +70,8 @@ defmodule Exkl.Display do
 
   @spec get_data(float(), Exkl.AK.modes()) :: binary()
   def get_data(value, mode) do
+    value = sanitize_display_value(value, mode)
+
     # Initialize base_data equivalent to `vec![0; 64]`
     # In Elixir, a list of integers works well for Vec<u8>
     base_data = List.duplicate(0, 64)
@@ -74,13 +80,10 @@ defmodule Exkl.Display do
     # Rust: (value as i32).to_string().chars().collect()
     numbers =
       value
-      # Convert float to integer (i32 equivalent)
       |> trunc()
-      # Convert integer to string
+      |> abs()
       |> Integer.to_string()
-      # Get a list of single-character strings
       |> String.graphemes()
-      # Convert each char string to integer (digit)
       |> Enum.map(&String.to_integer/1)
 
     # base_data[0] = 16;
@@ -140,6 +143,10 @@ defmodule Exkl.Display do
     result_data
     |> :binary.list_to_bin()
   end
+
+  defp sanitize_display_value(value, :cpu_util) when value < 0 or value > 100, do: 0.0
+  defp sanitize_display_value(value, _) when value < 0, do: 0.0
+  defp sanitize_display_value(value, _), do: value
 
   def fahrenheit_to_celsius(f) when is_float(f) do
     (f - 32) * 5 / 9

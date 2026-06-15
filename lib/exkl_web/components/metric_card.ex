@@ -18,6 +18,8 @@ defmodule ExklWeb.MetricCard do
   attr :icon, :string, required: true
   attr :chart_id, :string, required: true
   attr :value_id, :string, required: true
+  attr :freq, :string, default: nil
+  attr :power, :string, default: nil
 
   @segments 24
 
@@ -46,15 +48,27 @@ defmodule ExklWeb.MetricCard do
       </div>
 
       <div class="metric-card-value-row">
-        <div class="metric-card-value">
-          <span
-            class={["metric-number", !@available? && "metric-unavailable"]}
-            phx-hook="MetricPulse"
-            id={@value_id}
-          >
-            {@value}
-          </span>
-          <span :if={@available?} class="metric-unit">{@unit}</span>
+        <div class="metric-card-main">
+          <div class="metric-card-value">
+            <span
+              class={["metric-number", !@available? && "metric-unavailable"]}
+              phx-hook="MetricPulse"
+              id={@value_id}
+            >
+              {@value}
+            </span>
+            <span :if={@available?} class="metric-unit">{@unit}</span>
+          </div>
+          <div :if={@freq || @power} class="metric-meta">
+            <span :if={@freq} class="metric-meta-item">
+              <.icon name="hero-signal" class="metric-meta-icon" />
+              {@freq}
+            </span>
+            <span :if={@power} class="metric-meta-item">
+              <.icon name="hero-bolt" class="metric-meta-icon" />
+              {@power}
+            </span>
+          </div>
         </div>
 
         <div class="metric-meter" aria-hidden="true">
