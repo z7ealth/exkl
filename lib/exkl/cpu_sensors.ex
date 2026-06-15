@@ -5,7 +5,8 @@ defmodule Exkl.CpuSensors do
 
   alias Exkl.SensorsNif
 
-  @rapl_domain_glob "/sys/class/powercap/intel-rapl*/intel-rapl*"
+  @rapl_powercap_root "/sys/class/powercap"
+  @rapl_controllers ~w(intel-rapl intel-rapl-mmio)
   @rapl_energy_key {:exkl, :rapl_energy}
   @rapl_watts_key {:exkl, :rapl_watts}
 
@@ -39,26 +40,68 @@ defmodule Exkl.CpuSensors do
 
   @spec power_watts() :: float() | nil
   def power_watts do
-    rapl_power()
+    rapl_package_domains()
+    |> Enum.find_value(&read_rapl_domain_power/1)
+    |> or_else(&last_rapl_watts/0)
   end
 
-  defp rapl_power do
-    rapl_package_domain()
-    |> case do
-      nil -> last_rapl_watts()
-      domain -> read_rapl_domain_power(domain) || last_rapl_watts()
+  defp rapl_package_domains do
+    @rapl_controllers
+    |> Enum.flat_map(&list_rapl_domains(Path.join(@rapl_powercap_root, &1)))
+    |> Enum.filter(&package_domain?/1)
+    |> Enum.sort_by(&domain_sort_key/1)
+  end
+
+  defp list_rapl_domains(path) do
+    case File.ls(path) do
+      {:ok, entries} ->
+        self = if rapl_domain?(path), do: [path], else: []
+
+        children =
+          entries
+          |> Enum.filter(&rapl_domain_entry?/1)
+          |> Enum.flat_map(fn entry ->
+            list_rapl_domains(Path.join(path, entry))
+          end)
+
+        self ++ children
+
+      _ ->
+        []
     end
   end
 
-  defp rapl_package_domain do
-    @rapl_domain_glob
-    |> Path.wildcard()
-    |> Enum.find(fn path ->
-      case File.read(Path.join(path, "name")) do
-        {:ok, name} -> String.starts_with?(String.trim(name), "package")
-        _ -> false
+  defp rapl_domain_entry?(name), do: String.starts_with?(name, "intel-rapl")
+
+  defp rapl_domain?(path), do: File.exists?(Path.join(path, "energy_uj"))
+
+  defp package_domain?(path) do
+    case read_domain_name(path) do
+      "package" <> _ -> true
+      _ -> false
+    end
+  end
+
+  defp read_domain_name(path) do
+    case File.read(Path.join(path, "name")) do
+      {:ok, content} -> String.trim(content)
+      _ -> nil
+    end
+  end
+
+  defp domain_sort_key(path) do
+    name = read_domain_name(path) || ""
+
+    package_index =
+      case Regex.run(~r/^package-(\d+)$/, name) do
+        [_, index] -> String.to_integer(index)
+        _ -> 999
       end
-    end)
+
+    # Prefer MMIO RAPL on newer Intel systems when both are present.
+    controller_rank = if String.contains?(path, "intel-rapl-mmio"), do: 0, else: 1
+
+    {controller_rank, package_index, path}
   end
 
   defp read_rapl_domain_power(domain) do
@@ -84,7 +127,7 @@ defmodule Exkl.CpuSensors do
 
           :persistent_term.put(key, {energy, now})
 
-          if watts > 0, do: watts, else: nil
+          if watts >= 0.0, do: watts, else: nil
 
         _ ->
           :persistent_term.put(key, {energy, now})
@@ -157,7 +200,7 @@ defmodule Exkl.CpuSensors do
 
   defp last_rapl_watts do
     case :persistent_term.get(@rapl_watts_key, nil) do
-      watts when is_float(watts) and watts > 0 -> watts
+      watts when is_float(watts) and watts >= 0.0 -> watts
       _ -> nil
     end
   end

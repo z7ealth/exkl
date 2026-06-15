@@ -18,7 +18,8 @@ UDEV_GROUP="exkl"
 UDEV_RULE_FILE="/etc/udev/rules.d/99-exkl.rules"
 UDEV_RULES=(
   'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3633", ATTRS{idProduct}=="0003", MODE="0660", GROUP="exkl", TAG+="uaccess"'
-  'SUBSYSTEM=="powercap", ATTR{name}=="package-*", RUN+="/bin/chmod a+r %S%p/energy_uj"'
+  'SUBSYSTEM=="powercap", KERNEL=="intel-rapl*", ATTR{name}=="package-*", RUN+="/bin/chmod a+r %S%p/energy_uj"'
+  'SUBSYSTEM=="powercap", KERNEL=="intel-rapl-mmio*", ATTR{name}=="package-*", RUN+="/bin/chmod a+r %S%p/energy_uj"'
 )
 LEGACY_UDEV_RULE_FILE="/etc/udev/rules.d/99-exkl-hid.rules"
 
