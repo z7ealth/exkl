@@ -3,19 +3,34 @@ defmodule Exkl.GpuSensors do
 
   alias Exkl.SensorsNif
 
+  # Prefer nvidia-smi first so hybrid systems (iGPU + NVIDIA dGPU) report the
+  # discrete card, not integrated amdgpu/i915 sysfs readings.
+
+  @spec temp_celsius() :: float() | nil
+  def temp_celsius do
+    nvidia_temp() || sensors_temp()
+  end
+
   @spec utilization() :: float() | nil
   def utilization do
-    amdgpu_util() || intel_util() || nvidia_util()
+    nvidia_util() || amdgpu_util() || intel_util()
   end
 
   @spec frequency_mhz() :: float() | nil
   def frequency_mhz do
-    amdgpu_freq() || intel_freq() || nvidia_freq()
+    nvidia_freq() || amdgpu_freq() || intel_freq()
   end
 
   @spec power_watts() :: float() | nil
   def power_watts do
-    amdgpu_power() || intel_power() || nvidia_power() || sensors_power()
+    nvidia_power() || amdgpu_power() || intel_power() || sensors_power()
+  end
+
+  defp sensors_temp do
+    case SensorsNif.get_gpu_temp_celsius() do
+      temp when temp >= 0 -> temp
+      _ -> nil
+    end
   end
 
   defp amdgpu_util do
@@ -167,55 +182,32 @@ defmodule Exkl.GpuSensors do
     end)
   end
 
-  defp nvidia_freq do
-    case System.find_executable("nvidia-smi") do
-      nil ->
-        nil
+  defp nvidia_temp do
+    nvidia_query("temperature.gpu", &parse_percent/1)
+  end
 
-      path ->
-        case System.cmd(path, [
-               "--query-gpu=clocks.current.graphics",
-               "--format=csv,noheader,nounits"
-             ],
-             stderr_to_stdout: true
-           ) do
-          {output, 0} -> parse_freq_mhz(output)
-          _ -> nil
-        end
-    end
+  defp nvidia_freq do
+    nvidia_query("clocks.current.graphics", &parse_freq_mhz/1)
   end
 
   defp nvidia_power do
-    case System.find_executable("nvidia-smi") do
-      nil ->
-        nil
-
-      path ->
-        case System.cmd(path, [
-               "--query-gpu=power.draw",
-               "--format=csv,noheader,nounits"
-             ],
-             stderr_to_stdout: true
-           ) do
-          {output, 0} -> parse_power_watts(output)
-          _ -> nil
-        end
-    end
+    nvidia_query("power.draw", &parse_power_watts/1)
   end
 
   defp nvidia_util do
+    nvidia_query("utilization.gpu", &parse_percent/1)
+  end
+
+  defp nvidia_query(field, parser) do
     case System.find_executable("nvidia-smi") do
       nil ->
         nil
 
       path ->
-        case System.cmd(path, [
-               "--query-gpu=utilization.gpu",
-               "--format=csv,noheader,nounits"
-             ],
-             stderr_to_stdout: true
-           ) do
-          {output, 0} -> parse_percent(output)
+        case System.cmd(path, ["--query-gpu=#{field}", "--format=csv,noheader,nounits"],
+               stderr_to_stdout: true
+             ) do
+          {output, 0} -> parser.(output)
           _ -> nil
         end
     end

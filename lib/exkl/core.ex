@@ -6,7 +6,6 @@ defmodule Exkl.Core do
   alias Phoenix.PubSub
   alias Exkl.CpuSensors
   alias Exkl.GpuSensors
-  alias Exkl.SensorsNif
   alias Exkl.AK
 
   @pubsub_topic "cpu_metrics"
@@ -121,8 +120,8 @@ defmodule Exkl.Core do
   end
 
   defp update_gpu_temp(ak) do
-    case SensorsNif.get_gpu_temp_celsius() do
-      temp when temp < 0 -> Map.put(ak, :gpu_temp_c, nil)
+    case GpuSensors.temp_celsius() do
+      nil -> Map.put(ak, :gpu_temp_c, nil)
       temp -> Map.put(ak, :gpu_temp_c, temp)
     end
   end
