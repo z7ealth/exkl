@@ -96,7 +96,7 @@ The installer will:
 2. Build a production release
 3. Install to `~/.config/exkl`
 4. Create udev rules (`/etc/udev/rules.d/99-exkl.rules`) and add your user to the `exkl` group
-5. Enable the user systemd service `exkl.service`
+5. Enable the user systemd service `exkl.service` (includes `GDK_BACKEND=x11` for Wayland tray support)
 
 After install:
 
@@ -105,6 +105,23 @@ After install:
 - **Status:** `systemctl --user status exkl.service`
 
 If you were added to the `exkl` group, **log out and back in** before the HID device is accessible.
+
+### Wayland vs X11 (system tray)
+
+EXKL uses wxWidgets for the system tray and desktop window.
+
+| Session | Tray behavior |
+|---------|----------------|
+| **X11** | Works as-is. No extra configuration needed. |
+| **Wayland** (tested on **GNOME**) | Set `GDK_BACKEND=x11` so the tray icon appears. Without it, the tray may not show up. |
+
+`./install.sh` already sets `GDK_BACKEND=x11` in the `exkl.service` user unit, so an installed service should work on Wayland after install.
+
+For local development on Wayland, prefix the command:
+
+```bash
+GDK_BACKEND=x11 mix phx.server
+```
 
 ## Uninstall
 
@@ -116,10 +133,12 @@ Removes the user service, autostart entry, and `~/.config/exkl`. Optionally remo
 
 ## Development
 
+On **Wayland** (e.g. GNOME), use `GDK_BACKEND=x11` so the tray icon shows up. On a native **X11** session you can omit it.
+
 ```bash
 mix setup          # deps + assets
 make all           # build NIFs only
-GDK_BACKEND=x11 mix phx.server
+GDK_BACKEND=x11 mix phx.server   # Wayland; optional on X11
 ```
 
 Open the UI from the system tray (**Show window**). Native NIFs are rebuilt automatically on `mix compile` via `elixir_make` and the project `Makefile`.
@@ -145,7 +164,7 @@ Open the UI from the system tray (**Show window**). Native NIFs are rebuilt auto
 5. **Test** with the device plugged in:
 
    ```bash
-   mix phx.server
+   GDK_BACKEND=x11 mix phx.server   # on Wayland; optional on X11
    ```
 
    The tray UI **DeepCool devices** panel should list it as Connected. Check logs for HID write errors.

@@ -239,6 +239,7 @@ echo
 echo "EXKL installed."
 echo
 echo "UI:         Open 'Show window' from the system tray icon"
+echo "Wayland:    install.sh sets GDK_BACKEND=x11 in exkl.service (tray on GNOME Wayland)"
 echo "Service:    systemctl --user status exkl.service"
 echo "Logs:       journalctl --user -u exkl.service -f"
 echo "Uninstall:  ./uninstall.sh"
