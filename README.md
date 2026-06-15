@@ -13,79 +13,6 @@ Unofficial Linux control software for **DeepCool Digital** CPU coolers, case dis
 - User systemd service + XDG autostart fallback
 - udev rules for HID access and Intel RAPL CPU power readings
 
-## Architecture
-
-EXKL is an OTP application. The root supervisor starts Phoenix, metrics collection, HID device workers, and the desktop tray UI.
-
-### Supervisor tree
-
-```mermaid
-graph TD
-  Root["Exkl.Supervisor<br/><i>one_for_one</i>"]
-
-  Root --> Telemetry["ExklWeb.Telemetry<br/><i>one_for_one</i>"]
-  Root --> DNS["DNSCluster"]
-  Root --> PubSub["Phoenix.PubSub"]
-  Root --> Endpoint["ExklWeb.Endpoint"]
-  Root --> Core["Exkl.Core<br/><i>GenServer</i>"]
-  Root --> Display["Exkl.Display<br/><i>one_for_one</i>"]
-  Root --> GUI["Exkl.GUI<br/><i>GenServer</i>"]
-
-  Telemetry --> Poller["telemetry_poller"]
-
-  Display --> Worker1["Exkl.Display.Worker<br/><i>GenServer</i>"]
-  Display --> WorkerN["Exkl.Display.Worker …<br/><i>one per connected device</i>"]
-
-  GUI --> Desktop["Exkl.Desktop<br/><i>wx object</i>"]
-  Desktop --> Tray["wxTaskBarIcon"]
-  Desktop --> Window["wxFrame + WebView"]
-```
-
-`Exkl.Display` discovers DeepCool HID devices (vendor `3633`) at startup and starts one `Exkl.Display.Worker` per successfully opened device. `Exkl.GUI` starts `Exkl.Desktop`, which owns the system tray icon and the embedded dashboard window.
-
-### Data flow
-
-```mermaid
-flowchart LR
-  subgraph sources["System metrics"]
-    NIF["SensorsNif / hidapi NIFs"]
-    Sysfs["sysfs / RAPL / lm_sensors"]
-  end
-
-  Core["Exkl.Core"]
-  PubSub["Phoenix.PubSub<br/>cpu_metrics"]
-  Workers["Display.Worker"]
-  HID["USB HID display"]
-  Endpoint["ExklWeb.Endpoint"]
-  LV["DashboardLive"]
-  WebView["Desktop WebView"]
-
-  Sysfs --> Core
-  NIF --> Core
-  Core -->|"broadcast every 1s"| PubSub
-  PubSub --> Workers
-  PubSub --> LV
-  Workers -->|"encode + write"| HID
-  Endpoint --> LV
-  WebView --> Endpoint
-```
-
-`Exkl.Core` polls CPU/GPU sensors on a timer and publishes `{:cpu_metrics, %Exkl.AK{}}` on PubSub. HID workers subscribe and push encoded packets to the cooler display; the dashboard subscribes to the same topic via the embedded WebView window.
-
-## Supported devices
-
-USB vendor ID is always **3633** (`0x3633`).
-
-| USB ID | Device | Protocol |
-|--------|--------|----------|
-| `3633:0003` | AK500 DIGITAL | AK series |
-| `3633:0007` | MORPHEUS (case display) | CH series (CPU + GPU) |
-| `3633:0029` | AK620 G2 DIGITAL NYX | G2 series |
-
-The same **AK-series** encoder also targets AK400, AK620 (legacy), and AK500S (PIDs `0001`, `0002`, `0004`). Other **G2/NYX** AIOs (AK400/500/700 G2, USB IDs `3633:002a`–`3633:002c`) share the G2 encoder with the AK620 G2 NYX.
-
-Other DeepCool HID products may appear in the tray UI as **Detected** or **Unsupported** until added to the catalog. See the [deepcool-digital-linux device list](https://github.com/Nortank12/deepcool-digital-linux/blob/main/device-list/README.md) for reference PIDs.
-
 ## Dependencies
 
 ### Build & runtime (required)
@@ -188,6 +115,79 @@ GDK_BACKEND=x11 mix phx.server
 ```
 
 Removes the user service, autostart entry, and `~/.config/exkl`. Optionally removes udev rules and the `exkl` group.
+
+## Architecture
+
+EXKL is an OTP application. The root supervisor starts Phoenix, metrics collection, HID device workers, and the desktop tray UI.
+
+### Supervisor tree
+
+```mermaid
+graph TD
+  Root["Exkl.Supervisor<br/><i>one_for_one</i>"]
+
+  Root --> Telemetry["ExklWeb.Telemetry<br/><i>one_for_one</i>"]
+  Root --> DNS["DNSCluster"]
+  Root --> PubSub["Phoenix.PubSub"]
+  Root --> Endpoint["ExklWeb.Endpoint"]
+  Root --> Core["Exkl.Core<br/><i>GenServer</i>"]
+  Root --> Display["Exkl.Display<br/><i>one_for_one</i>"]
+  Root --> GUI["Exkl.GUI<br/><i>GenServer</i>"]
+
+  Telemetry --> Poller["telemetry_poller"]
+
+  Display --> Worker1["Exkl.Display.Worker<br/><i>GenServer</i>"]
+  Display --> WorkerN["Exkl.Display.Worker …<br/><i>one per connected device</i>"]
+
+  GUI --> Desktop["Exkl.Desktop<br/><i>wx object</i>"]
+  Desktop --> Tray["wxTaskBarIcon"]
+  Desktop --> Window["wxFrame + WebView"]
+```
+
+`Exkl.Display` discovers DeepCool HID devices (vendor `3633`) at startup and starts one `Exkl.Display.Worker` per successfully opened device. `Exkl.GUI` starts `Exkl.Desktop`, which owns the system tray icon and the embedded dashboard window.
+
+### Data flow
+
+```mermaid
+flowchart LR
+  subgraph sources["System metrics"]
+    NIF["SensorsNif / hidapi NIFs"]
+    Sysfs["sysfs / RAPL / lm_sensors"]
+  end
+
+  Core["Exkl.Core"]
+  PubSub["Phoenix.PubSub<br/>cpu_metrics"]
+  Workers["Display.Worker"]
+  HID["USB HID display"]
+  Endpoint["ExklWeb.Endpoint"]
+  LV["DashboardLive"]
+  WebView["Desktop WebView"]
+
+  Sysfs --> Core
+  NIF --> Core
+  Core -->|"broadcast every 1s"| PubSub
+  PubSub --> Workers
+  PubSub --> LV
+  Workers -->|"encode + write"| HID
+  Endpoint --> LV
+  WebView --> Endpoint
+```
+
+`Exkl.Core` polls CPU/GPU sensors on a timer and publishes `{:cpu_metrics, %Exkl.AK{}}` on PubSub. HID workers subscribe and push encoded packets to the cooler display; the dashboard subscribes to the same topic via the embedded WebView window.
+
+## Supported devices
+
+USB vendor ID is always **3633** (`0x3633`).
+
+| USB ID | Device | Protocol |
+|--------|--------|----------|
+| `3633:0003` | AK500 DIGITAL | AK series |
+| `3633:0007` | MORPHEUS (case display) | CH series (CPU + GPU) |
+| `3633:0029` | AK620 G2 DIGITAL NYX | G2 series |
+
+The same **AK-series** encoder also targets AK400, AK620 (legacy), and AK500S (PIDs `0001`, `0002`, `0004`). Other **G2/NYX** AIOs (AK400/500/700 G2, USB IDs `3633:002a`–`3633:002c`) share the G2 encoder with the AK620 G2 NYX.
+
+Other DeepCool HID products may appear in the tray UI as **Detected** or **Unsupported** until added to the catalog. See the [deepcool-digital-linux device list](https://github.com/Nortank12/deepcool-digital-linux/blob/main/device-list/README.md) for reference PIDs.
 
 ## Development
 
