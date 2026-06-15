@@ -10,7 +10,8 @@ SERVICE_DIR="$HOME/.config/systemd/user"
 AUTOSTART_FILE="$HOME/.config/autostart/exkl.desktop"
 
 UDEV_GROUP="exkl"
-UDEV_RULE_FILE="/etc/udev/rules.d/99-exkl-hid.rules"
+UDEV_RULE_FILE="/etc/udev/rules.d/99-exkl.rules"
+LEGACY_UDEV_RULE_FILE="/etc/udev/rules.d/99-exkl-hid.rules"
 
 log() {
   echo "[+] $1"
@@ -67,17 +68,23 @@ if [ -d "$EXKL_DIR" ]; then
 fi
 
 echo
-read -r -p "Remove EXKL HID udev rule? (y/n): " remove_udev
+read -r -p "Remove EXKL udev rules? (y/n): " remove_udev
 
 case "$remove_udev" in
   y|Y)
     if [ -f "$UDEV_RULE_FILE" ]; then
-      log "Removing udev rule..."
+      log "Removing udev rules..."
       sudo rm -f "$UDEV_RULE_FILE"
       sudo udevadm control --reload-rules
       sudo udevadm trigger
     else
-      warn "Udev rule not found."
+      warn "Udev rules not found."
+    fi
+
+    if [ -f "$LEGACY_UDEV_RULE_FILE" ]; then
+      sudo rm -f "$LEGACY_UDEV_RULE_FILE"
+      sudo udevadm control --reload-rules
+      sudo udevadm trigger
     fi
     ;;
   n|N)

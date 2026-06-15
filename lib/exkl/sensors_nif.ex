@@ -6,7 +6,6 @@ defmodule Exkl.SensorsNif do
     get_cpu_temp_celsius: 0,
     get_cpu_temp_fahrenheit: 0,
     get_gpu_temp_celsius: 0,
-    get_cpu_power_watts: 0,
     get_gpu_power_watts: 0
   ]
 
@@ -15,7 +14,6 @@ defmodule Exkl.SensorsNif do
   def get_cpu_temp_celsius, do: load_error(:sensors_nif_library_not_loaded)
   def get_cpu_temp_fahrenheit, do: load_error(:sensors_nif_library_not_loaded)
   def get_gpu_temp_celsius, do: load_error(:sensors_nif_library_not_loaded)
-  def get_cpu_power_watts, do: load_error(:sensors_nif_library_not_loaded)
   def get_gpu_power_watts, do: load_error(:sensors_nif_library_not_loaded)
 
   defp load_error(error) do

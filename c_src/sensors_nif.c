@@ -19,10 +19,6 @@ static int is_gpu_chip(const char *chip_name) {
          strstr(chip_name, "xe") != NULL;
 }
 
-static int is_cpu_power_chip(const char *chip_name) {
-  return strstr(chip_name, "zenpower") != NULL;
-}
-
 static double get_temp_for_chips(chip_filter_fn filter) {
   int chip_nr = 0;
   double temp = 0.0;
@@ -101,8 +97,6 @@ double get_cpu_temp_celsius() { return get_temp_for_chips(is_cpu_chip); }
 
 double get_gpu_temp_celsius() { return get_temp_for_chips(is_gpu_chip); }
 
-double get_cpu_power_watts() { return get_power_for_chips(is_cpu_power_chip); }
-
 double get_gpu_power_watts() { return get_power_for_chips(is_gpu_chip); }
 
 double get_cpu_temp_fahrenheit() {
@@ -124,11 +118,6 @@ static ERL_NIF_TERM get_gpu_temp_celsius_nif(ErlNifEnv *env, int argc,
   return enif_make_double(env, get_gpu_temp_celsius());
 }
 
-static ERL_NIF_TERM get_cpu_power_watts_nif(ErlNifEnv *env, int argc,
-                                            const ERL_NIF_TERM argv[]) {
-  return enif_make_double(env, get_cpu_power_watts());
-}
-
 static ERL_NIF_TERM get_gpu_power_watts_nif(ErlNifEnv *env, int argc,
                                             const ERL_NIF_TERM argv[]) {
   return enif_make_double(env, get_gpu_power_watts());
@@ -148,7 +137,6 @@ static ErlNifFunc nif_funcs[] = {
     {"get_cpu_temp_celsius", 0, get_cpu_temp_celsius_nif},
     {"get_cpu_temp_fahrenheit", 0, get_cpu_temp_fahrenheit_nif},
     {"get_gpu_temp_celsius", 0, get_gpu_temp_celsius_nif},
-    {"get_cpu_power_watts", 0, get_cpu_power_watts_nif},
     {"get_gpu_power_watts", 0, get_gpu_power_watts_nif}};
 
 ERL_NIF_INIT(Elixir.Exkl.SensorsNif, nif_funcs, load, NULL, NULL, unload)

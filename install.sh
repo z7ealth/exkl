@@ -15,8 +15,12 @@ AUTOSTART_DIR="$HOME/.config/autostart"
 AUTOSTART_FILE="$AUTOSTART_DIR/exkl.desktop"
 
 UDEV_GROUP="exkl"
-UDEV_RULE_FILE="/etc/udev/rules.d/99-exkl-hid.rules"
-UDEV_RULE='SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3633", ATTRS{idProduct}=="0003", MODE="0660", GROUP="exkl", TAG+="uaccess"'
+UDEV_RULE_FILE="/etc/udev/rules.d/99-exkl.rules"
+UDEV_RULES=(
+  'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3633", ATTRS{idProduct}=="0003", MODE="0660", GROUP="exkl", TAG+="uaccess"'
+  'SUBSYSTEM=="powercap", ATTR{name}=="package-*", RUN+="/bin/chmod a+r %S%p/energy_uj"'
+)
+LEGACY_UDEV_RULE_FILE="/etc/udev/rules.d/99-exkl-hid.rules"
 
 NEED_RELOGIN=false
 
@@ -82,7 +86,7 @@ log "Installing release to $EXKL_DIR..."
 install -d "$EXKL_DIR"
 cp -a "_build/$ENV/rel/$APP_NAME/." "$EXKL_DIR/"
 
-log "Creating HID udev rule..."
+log "Creating udev rules..."
 
 if ! getent group "$UDEV_GROUP" >/dev/null 2>&1; then
   sudo groupadd "$UDEV_GROUP"
@@ -93,12 +97,20 @@ if ! groups "$USER" | grep -qw "$UDEV_GROUP"; then
   NEED_RELOGIN=true
 fi
 
-echo "$UDEV_RULE" | sudo tee "$UDEV_RULE_FILE" >/dev/null
+if [ -f "$LEGACY_UDEV_RULE_FILE" ]; then
+  sudo rm -f "$LEGACY_UDEV_RULE_FILE"
+fi
+
+{
+  for rule in "${UDEV_RULES[@]}"; do
+    echo "$rule"
+  done
+} | sudo tee "$UDEV_RULE_FILE" >/dev/null
 
 sudo udevadm control --reload-rules
-sudo udevadm trigger
+sudo udevadm trigger --subsystem-match=powercap --subsystem-match=hidraw
 
-log "Udev rule installed at $UDEV_RULE_FILE"
+log "Udev rules installed at $UDEV_RULE_FILE"
 
 log "Creating user systemd service..."
 
@@ -123,6 +135,8 @@ ExecStart=$EXEC_PATH start
 ExecStop=$EXEC_PATH stop
 Restart=on-failure
 RestartSec=5s
+AmbientCapabilities=CAP_DAC_READ_SEARCH
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH
 
 Environment=PHX_SERVER=true
 Environment=SECRET_KEY_BASE=$SECRET_KEY_BASE

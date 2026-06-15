@@ -1,7 +1,13 @@
 defmodule Exkl.CpuSensors do
   @moduledoc false
 
+  require Logger
+
   alias Exkl.SensorsNif
+
+  @rapl_domain_glob "/sys/class/powercap/intel-rapl*/intel-rapl*"
+  @rapl_energy_key {:exkl, :rapl_energy}
+  @rapl_watts_key {:exkl, :rapl_watts}
 
   @spec temp_celsius() :: float() | nil
   def temp_celsius do
@@ -33,25 +39,131 @@ defmodule Exkl.CpuSensors do
 
   @spec power_watts() :: float() | nil
   def power_watts do
-    rapl_power() || zenpower_hwmon() || sensors_power()
+    rapl_power()
   end
 
   defp rapl_power do
-    [
-      "/sys/class/powercap/intel-rapl*/intel-rapl*:*/power1_average",
-      "/sys/class/powercap/intel-rapl*/intel-rapl*:*/power1_input"
-    ]
-    |> Enum.flat_map(&Path.wildcard/1)
-    |> Enum.find_value(&read_power_uw/1)
+    rapl_package_domain()
+    |> case do
+      nil -> last_rapl_watts()
+      domain -> read_rapl_domain_power(domain) || last_rapl_watts()
+    end
   end
 
-  defp zenpower_hwmon do
-    hwmon_path("zenpower")
-    |> read_hwmon_power()
+  defp rapl_package_domain do
+    @rapl_domain_glob
+    |> Path.wildcard()
+    |> Enum.find(fn path ->
+      case File.read(Path.join(path, "name")) do
+        {:ok, name} -> String.starts_with?(String.trim(name), "package")
+        _ -> false
+      end
+    end)
+  end
+
+  defp read_rapl_domain_power(domain) do
+    domain
+    |> Path.join("power1_average")
+    |> read_power_uw()
+    |> or_else(fn -> domain |> Path.join("power1_input") |> read_power_uw() end)
+    |> or_else(fn -> rapl_energy_power(domain) end)
+    |> tap(&store_rapl_watts/1)
+  end
+
+  defp rapl_energy_power(domain) do
+    with {:ok, energy} <- read_energy_uj(domain),
+         {:ok, now} <- {:ok, System.monotonic_time(:millisecond)},
+         max_energy <- read_max_energy_uj(domain) do
+      key = {@rapl_energy_key, domain}
+
+      case :persistent_term.get(key, nil) do
+        {prev_energy, prev_time} when now > prev_time ->
+          delta_uj = energy_delta(energy, prev_energy, max_energy)
+          delta_s = (now - prev_time) / 1000.0
+          watts = delta_uj / 1_000_000.0 / delta_s
+
+          :persistent_term.put(key, {energy, now})
+
+          if watts > 0, do: watts, else: nil
+
+        _ ->
+          :persistent_term.put(key, {energy, now})
+          nil
+      end
+    else
+      _ -> nil
+    end
+  end
+
+  defp energy_delta(energy, prev_energy, _max_energy) when energy >= prev_energy do
+    energy - prev_energy
+  end
+
+  defp energy_delta(energy, prev_energy, max_energy) when is_integer(max_energy) and max_energy > 0 do
+    max_energy - prev_energy + energy
+  end
+
+  defp energy_delta(energy, prev_energy, _), do: energy - prev_energy
+
+  defp read_energy_uj(domain) do
+    path = Path.join(domain, "energy_uj")
+
+    case File.read(path) do
+      {:ok, content} ->
+        case Integer.parse(String.trim(content)) do
+          {energy, _} when energy >= 0 -> {:ok, energy}
+          _ -> :error
+        end
+
+      {:error, :eacces} ->
+        log_rapl_permission_denied(path)
+        :error
+
+      _ ->
+        :error
+    end
+  end
+
+  defp log_rapl_permission_denied(path) do
+    unless :persistent_term.get({:exkl, :rapl_eacces_logged}, false) do
+      :persistent_term.put({:exkl, :rapl_eacces_logged}, true)
+
+      Logger.warning(
+        "Cannot read RAPL energy from #{path} (permission denied). " <>
+          "Re-run install.sh or: sudo chmod a+r #{path}"
+      )
+    end
+  end
+
+  defp read_max_energy_uj(domain) do
+    case File.read(Path.join(domain, "max_energy_range_uj")) do
+      {:ok, content} ->
+        case Integer.parse(String.trim(content)) do
+          {max, _} when max > 0 -> max
+          _ -> nil
+        end
+
+      _ ->
+        nil
+    end
+  end
+
+  defp store_rapl_watts(nil), do: nil
+
+  defp store_rapl_watts(watts) when is_float(watts) do
+    :persistent_term.put(@rapl_watts_key, watts)
+    watts
+  end
+
+  defp last_rapl_watts do
+    case :persistent_term.get(@rapl_watts_key, nil) do
+      watts when is_float(watts) and watts > 0 -> watts
+      _ -> nil
+    end
   end
 
   defp hwmon_temp_celsius do
-    read_hwmon_temp(hwmon_path("zenpower")) || read_hwmon_temp(hwmon_path("k10temp"))
+    read_hwmon_temp(hwmon_path("k10temp")) || read_hwmon_temp(hwmon_path("zenpower"))
   end
 
   defp read_hwmon_temp(nil), do: nil
@@ -69,13 +181,6 @@ defmodule Exkl.CpuSensors do
     end
   end
 
-  defp sensors_power do
-    case SensorsNif.get_cpu_power_watts() do
-      power when power > 0 -> power
-      _ -> nil
-    end
-  end
-
   defp hwmon_path(name) do
     "/sys/class/hwmon/hwmon*/name"
     |> Path.wildcard()
@@ -87,17 +192,6 @@ defmodule Exkl.CpuSensors do
         _ ->
           nil
       end
-    end)
-  end
-
-  defp read_hwmon_power(nil), do: nil
-
-  defp read_hwmon_power(hwmon_path) do
-    ["power1_average", "power1_input"]
-    |> Enum.find_value(fn file ->
-      hwmon_path
-      |> Path.join(file)
-      |> read_power_uw()
     end)
   end
 
@@ -126,4 +220,7 @@ defmodule Exkl.CpuSensors do
         nil
     end
   end
+
+  defp or_else(nil, fun) when is_function(fun, 0), do: fun.()
+  defp or_else(value, _), do: value
 end
