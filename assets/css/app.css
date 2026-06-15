@@ -154,7 +154,7 @@ html {
     grid-row: 1;
   }
 
-  .metrics-row {
+  .metrics-column {
     grid-column: 2;
     grid-row: 1;
     height: 100%;
@@ -166,9 +166,9 @@ html {
   }
 }
 
-.metrics-row {
+.metrics-column {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.85rem;
   align-items: stretch;
 }
@@ -725,10 +725,6 @@ html {
 }
 
 @media (max-width: 767px) {
-  .metrics-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .system-panel-header {
     flex-direction: row;
     text-align: left;

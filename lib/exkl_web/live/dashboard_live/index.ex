@@ -71,7 +71,7 @@ defmodule ExklWeb.DashboardLive.Index do
           </ul>
         </section>
 
-        <div class="metrics-row">
+        <div class="metrics-column">
           <.metric_card
             title={@metric_title}
             subtitle={@facts.cpu_name}
