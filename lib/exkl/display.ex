@@ -1,154 +1,71 @@
 defmodule Exkl.Display do
-  use GenServer
+  @moduledoc """
+  Supervises one worker per connected HID display device.
+
+  Each supported device model implements `Exkl.HidDevice` and is listed in
+  `Exkl.HidDevice.Registry`. On startup, every registered model is probed via
+  USB vendor/product ID; connected devices receive live metrics over PubSub.
+  """
+
+  use Supervisor
 
   require Logger
 
-  alias Phoenix.PubSub
+  alias Exkl.Display.Worker
   alias Exkl.HidApiNif
+  alias Exkl.HidDevice
+  alias Exkl.HidDevice.Registry
 
-  @pubsub_topic "cpu_metrics"
-
-  @vendor_id 0x3633
-  @products %{
-    ak500: 0x0003,
-    ak620: 0x0004
-  }
-  @display_modes %{
-    celsius: 19,
-    fahrenheit: 35,
-    utilization: 76,
-    start: 170
-  }
-
-  # Client
-
-  def start_link(args) do
-    GenServer.start_link(__MODULE__, args, name: __MODULE__)
+  def start_link(init_arg \\ []) do
+    Supervisor.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
 
-  # Server (callbacks)
+  @impl Supervisor
+  def init(_arg) do
+    children =
+      Registry.all()
+      |> Enum.flat_map(&start_worker/1)
 
-  @impl true
-  def init(_params) do
-    device = %{handle: HidApiNif.open(@vendor_id, @products[:ak500])}
-    PubSub.subscribe(Exkl.PubSub, @pubsub_topic)
+    case children do
+      [] ->
+        Logger.info("No HID display devices connected")
 
-    HidApiNif.write(device.handle, get_data(0.0, :start))
+      _ ->
+        Logger.info("Started #{length(children)} HID display worker(s)")
+    end
 
-    {:ok, device}
+    Supervisor.init(children, strategy: :one_for_one)
   end
 
-  @impl true
-  def handle_info({:cpu_metrics, %{mode: mode, metrics_value: metrics_value} = ak}, device) do
-    Logger.debug("Exkl.Display received metrics update: #{inspect(ak)}%")
+  defp start_worker(device) do
+    vendor_id = HidDevice.vendor_id(device)
+    product_id = HidDevice.product_id(device)
 
-    HidApiNif.write(device.handle, get_data(metrics_value, mode))
+    case open_handle(vendor_id, product_id) do
+      {:ok, handle} ->
+        [
+          %{
+            id: {device.__struct__, product_id},
+            start: {Worker, :start_link, [{handle, device}]}
+          }
+        ]
 
-    {:noreply, device}
-  rescue
-    e ->
-      Logger.error("Exkl.Display failed to write metrics: #{inspect(e)}")
-      {:noreply, device}
+      :error ->
+        Logger.debug(
+          "HID device not connected: #{HidDevice.name(device)} " <>
+            "(#{hex(vendor_id)}:#{hex(product_id)})"
+        )
+
+        []
+    end
   end
 
-  @impl true
-  def terminate(reason, device) do
-    Logger.debug(
-      "Exkl.Display terminating. Closing HID device handle: #{inspect(device.handle)}. Reason: #{inspect(reason)}"
-    )
-
-    HidApiNif.close(device.handle)
-    :ok
+  defp open_handle(vendor_id, product_id) do
+    case HidApiNif.open(vendor_id, product_id) do
+      handle when is_integer(handle) -> :error
+      handle -> {:ok, handle}
+    end
   end
 
-  defp get_bar_value(metrics_value, _mode) when metrics_value < 10.0, do: 0.0
-
-  defp get_bar_value(metrics_value, mode) when mode in [:cpu_temp_c, :cpu_util],
-    do: metrics_value / 10.0
-
-  defp get_bar_value(metrics_value, :cpu_temp_f), do: fahrenheit_to_celsius(metrics_value) / 10.0
-
-  @spec get_data(float(), Exkl.AK.modes()) :: binary()
-  def get_data(value, mode) do
-    value = sanitize_display_value(value, mode)
-
-    # Initialize base_data equivalent to `vec![0; 64]`
-    # In Elixir, a list of integers works well for Vec<u8>
-    base_data = List.duplicate(0, 64)
-
-    # Convert the integer part of the float to a list of its digits
-    # Rust: (value as i32).to_string().chars().collect()
-    numbers =
-      value
-      |> trunc()
-      |> abs()
-      |> Integer.to_string()
-      |> String.graphemes()
-      |> Enum.map(&String.to_integer/1)
-
-    # base_data[0] = 16;
-    # Elixir lists are 0-indexed
-    base_data = List.replace_at(base_data, 0, 16)
-
-    # base_data[2] = get_bar_value(value) as u8;
-    bar_value = get_bar_value(value, mode) |> trunc()
-    base_data = List.replace_at(base_data, 2, bar_value)
-
-    # Match equivalent to Rust's `match mode { ... }`
-    base_data =
-      case mode do
-        # Default case for `DisplayMode::Celsius`
-        :start ->
-          List.replace_at(base_data, 1, @display_modes[:start])
-
-        :cpu_util ->
-          List.replace_at(base_data, 1, @display_modes[:utilization])
-
-        :cpu_temp_f ->
-          List.replace_at(base_data, 1, @display_modes[:fahrenheit])
-
-        _ ->
-          List.replace_at(base_data, 1, @display_modes[:celsius])
-      end
-
-    # Handle `numbers.len()` conditions
-    result_data =
-      cond do
-        length(numbers) == 1 ->
-          # base_data[5] = numbers[0].to_digit(10).unwrap() as u8;
-          List.replace_at(base_data, 5, Enum.at(numbers, 0))
-
-        length(numbers) == 2 ->
-          # base_data[4] = numbers[0].to_digit(10).unwrap() as u8;
-          # base_data[5] = numbers[1].to_digit(10).unwrap() as u8;
-          base_data
-          |> List.replace_at(4, Enum.at(numbers, 0))
-          |> List.replace_at(5, Enum.at(numbers, 1))
-
-        length(numbers) == 3 ->
-          # base_data[3] = numbers[0].to_digit(10).unwrap() as u8;
-          # base_data[4] = numbers[1].to_digit(10).unwrap() as u8;
-          # base_data[5] = numbers[2].to_digit(10).unwrap() as u8;
-          base_data
-          |> List.replace_at(3, Enum.at(numbers, 0))
-          |> List.replace_at(4, Enum.at(numbers, 1))
-          |> List.replace_at(5, Enum.at(numbers, 2))
-
-        # Default case, no changes if length is not 1, 2, or 3
-        true ->
-          base_data
-      end
-
-    # Return the final list
-    result_data
-    |> :binary.list_to_bin()
-  end
-
-  defp sanitize_display_value(value, :cpu_util) when value < 0 or value > 100, do: 0.0
-  defp sanitize_display_value(value, _) when value < 0, do: 0.0
-  defp sanitize_display_value(value, _), do: value
-
-  def fahrenheit_to_celsius(f) when is_float(f) do
-    (f - 32) * 5 / 9
-  end
+  defp hex(value), do: String.pad_leading(Integer.to_string(value, 16), 4, "0")
 end
