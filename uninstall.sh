@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="exkl"
-
 EXKL_DIR="$HOME/.config/exkl"
 
 SERVICE_NAME="exkl"
@@ -46,7 +44,6 @@ systemctl --user disable "$SERVICE_NAME" 2>/dev/null || true
 log "Killing leftover EXKL processes..."
 
 pkill -f "$EXKL_DIR/bin/exkl" 2>/dev/null || true
-pkill -x "$APP_NAME" 2>/dev/null || true
 
 log "Removing user systemd service..."
 

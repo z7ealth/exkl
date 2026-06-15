@@ -31,21 +31,28 @@ defmodule ExklWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <header class="navbar flex justify-end px-4 sm:px-6 lg:px-8">
-        <ul>
-          <li>
-            <.theme_toggle />
-          </li>
-        </ul>
-    </header>
+    <div class="dashboard-bg relative flex h-dvh flex-col overflow-hidden">
+      <div class="dashboard-orb dashboard-orb-1" aria-hidden="true" />
+      <div class="dashboard-orb dashboard-orb-2" aria-hidden="true" />
 
-    <main class="px-4 py-20 sm:px-6 lg:px-8">
-      <div class="mx-auto max-w-2xl space-y-4">
-        {render_slot(@inner_block)}
-      </div>
-    </main>
+      <header class="relative z-10 flex shrink-0 items-center justify-between px-4 py-3 sm:px-6">
+        <div class="flex items-center gap-3">
+          <span class="live-dot" aria-hidden="true" />
+          <span class="text-xs font-medium uppercase tracking-[0.2em] text-base-content/50">
+            Live
+          </span>
+        </div>
+        <.theme_toggle />
+      </header>
 
-    <.flash_group flash={@flash} />
+      <main class="relative z-10 flex flex-1 items-center justify-center overflow-y-auto px-4 py-4 sm:px-6">
+        <div class="dashboard-frame mx-auto w-full max-w-6xl">
+          {render_slot(@inner_block)}
+        </div>
+      </main>
+
+      <.flash_group flash={@flash} />
+    </div>
     """
   end
 
@@ -99,8 +106,8 @@ defmodule ExklWeb.Layouts do
   """
   def theme_toggle(assigns) do
     ~H"""
-    <div class="card relative flex flex-row items-center border-2 border-base-300 bg-base-300 rounded-full">
-      <div class="absolute w-1/3 h-full rounded-full border-1 border-base-200 bg-base-100 brightness-200 left-0 [[data-theme=light]_&]:left-1/3 [[data-theme=dark]_&]:left-2/3 transition-[left]" />
+    <div class="glass-panel relative flex flex-row items-center rounded-full p-0.5">
+      <div class="absolute w-1/3 h-[calc(100%-4px)] rounded-full bg-base-100/80 shadow-sm left-0.5 top-0.5 [[data-theme=light]_&]:left-[calc(33.33%+2px)] [[data-theme=dark]_&]:left-[calc(66.66%+2px)] transition-[left] duration-300 ease-out" />
 
       <button
         phx-click={JS.dispatch("phx:set-theme", detail: %{theme: "system"})}

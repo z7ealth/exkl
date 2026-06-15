@@ -4,6 +4,7 @@ defmodule Exkl.Core do
   require Logger
 
   alias Phoenix.PubSub
+  alias Exkl.GpuSensors
   alias Exkl.SensorsNif
   alias Exkl.AK
 
@@ -38,7 +39,11 @@ defmodule Exkl.Core do
 
   @impl true
   def handle_info(:update_cpu_metrics, ak) do
-    updated_ak = update_metrics(ak)
+    updated_ak =
+      ak
+      |> update_cpu_metrics()
+      |> update_gpu_metrics()
+
     Logger.debug("Publishing updated metrics: #{inspect(updated_ak)}%")
 
     PubSub.broadcast(Exkl.PubSub, @pubsub_topic, {:cpu_metrics, updated_ak})
@@ -52,14 +57,34 @@ defmodule Exkl.Core do
       {:noreply, ak}
   end
 
-  defp update_metrics(%AK{mode: :cpu_temp_c} = ak),
+  defp update_cpu_metrics(%AK{mode: :cpu_temp_c} = ak),
     do: Map.replace!(ak, :metrics_value, SensorsNif.get_cpu_temp_celsius())
 
-  defp update_metrics(%AK{mode: :cpu_temp_f} = ak),
+  defp update_cpu_metrics(%AK{mode: :cpu_temp_f} = ak),
     do: Map.replace!(ak, :metrics_value, SensorsNif.get_cpu_temp_fahrenheit())
 
-  defp update_metrics(%AK{mode: :cpu_util} = ak),
+  defp update_cpu_metrics(%AK{mode: :cpu_util} = ak),
     do: Map.replace!(ak, :metrics_value, :cpu_sup.util())
+
+  defp update_gpu_metrics(ak) do
+    ak
+    |> update_gpu_temp()
+    |> update_gpu_util()
+  end
+
+  defp update_gpu_temp(ak) do
+    case SensorsNif.get_gpu_temp_celsius() do
+      temp when temp < 0 -> Map.put(ak, :gpu_temp_c, nil)
+      temp -> Map.put(ak, :gpu_temp_c, temp)
+    end
+  end
+
+  defp update_gpu_util(ak) do
+    case GpuSensors.utilization() do
+      nil -> Map.put(ak, :gpu_util, nil)
+      util -> Map.put(ak, :gpu_util, util)
+    end
+  end
 
   defp schedule_update() do
     Process.send_after(self(), :update_cpu_metrics, @update_interval)

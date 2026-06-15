@@ -4,13 +4,15 @@ defmodule Exkl.MixProject do
   def project do
     [
       app: :exkl,
-      version: "0.1.0",
+      version: "1.0.0",
       elixir: "~> 1.15",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
-      listeners: [Phoenix.CodeReloader]
+      listeners: [Phoenix.CodeReloader],
+      compilers: [:elixir_make] ++ Mix.compilers,
+      make_clean: ["clean"]
     ]
   end
 
@@ -52,7 +54,8 @@ defmodule Exkl.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.1.1"},
-      {:bandit, "~> 1.5"}
+      {:bandit, "~> 1.5"},
+      {:elixir_make, "~> 0.10", runtime: false}
     ]
   end
 

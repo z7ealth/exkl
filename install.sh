@@ -4,7 +4,6 @@ set -euo pipefail
 APP_NAME="exkl"
 ENV="prod"
 
-NIFS_DIR="priv/nifs"
 EXKL_DIR="$HOME/.config/exkl"
 
 SERVICE_NAME="exkl"
@@ -34,23 +33,6 @@ command -v mix >/dev/null 2>&1 || die "mix not found. Install Elixir/Erlang."
 command -v gcc >/dev/null 2>&1 || die "gcc not found."
 command -v sudo >/dev/null 2>&1 || die "sudo not found."
 command -v systemctl >/dev/null 2>&1 || die "systemctl not found."
-
-install -d "$NIFS_DIR"
-
-log "Compiling NIFs..."
-
-gcc -fPIC -shared \
-  -I/usr/lib/erlang/usr/include \
-  c_src/sensors_nif.c \
-  -o "$NIFS_DIR/sensors_nif.so" \
-  -lsensors
-
-gcc -fPIC -shared \
-  -I/usr/lib/erlang/usr/include \
-  -I/usr/include/hidapi \
-  c_src/hid_api_nif.c \
-  -o "$NIFS_DIR/hid_api_nif.so" \
-  -lhidapi-hidraw
 
 log "Fetching dependencies..."
 mix deps.get
@@ -145,6 +127,7 @@ RestartSec=5s
 Environment=PHX_SERVER=true
 Environment=SECRET_KEY_BASE=$SECRET_KEY_BASE
 Environment=GTK_USE_PORTAL=1
+Environment=GDK_BACKEND=x11
 
 StandardOutput=journal
 StandardError=journal
@@ -152,16 +135,6 @@ StandardError=journal
 [Install]
 WantedBy=default.target
 EOF
-
-log "Importing current graphical session environment..."
-
-systemctl --user import-environment \
-  DISPLAY \
-  WAYLAND_DISPLAY \
-  XDG_RUNTIME_DIR \
-  DBUS_SESSION_BUS_ADDRESS \
-  XDG_CURRENT_DESKTOP \
-  2>/dev/null || true
 
 log "Reloading user systemd..."
 systemctl --user daemon-reload
@@ -196,6 +169,4 @@ echo "EXKL installed."
 if [ "$NEED_RELOGIN" = true ]; then
   echo
   echo "Please log out and back in, then start it with:"
-  echo
-  echo "systemctl --user start exkl.service"
 fi
