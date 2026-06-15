@@ -6,8 +6,11 @@ defmodule ExklWeb.DashboardLive.Index do
 
   import ExklWeb.MetricCard
 
+  alias Exkl.HidDevice.Discovery
+
   @pubsub_topic "cpu_metrics"
   @history_size 36
+  @device_refresh_ms 10_000
 
   @modes [
     %{id: :cpu_temp_c, label: "°C", title: "Temperature °C", icon: "hero-fire"},
@@ -69,6 +72,32 @@ defmodule ExklWeb.DashboardLive.Index do
               <span class="system-fact-value">{fact.value}</span>
             </li>
           </ul>
+
+          <div class="divider my-2 opacity-30" />
+
+          <div class="device-section">
+            <p class="device-section-label">DeepCool devices</p>
+
+            <p :if={@devices == []} class="device-empty">
+              No DeepCool HID devices detected
+            </p>
+
+            <ul :if={@devices != []} class="device-list">
+              <li :for={device <- @devices} class="device-item">
+                <div class="device-item-header">
+                  <span class={["device-status", device_status_class(device.status)]} />
+                  <span class="device-name">{device.name}</span>
+                </div>
+                <div class="device-item-meta">
+                  <span class="device-usb-id">{device.usb_id}</span>
+                  <span class="device-family">{device_family_label(device.family)}</span>
+                </div>
+                <span class={["device-status-label", device_status_class(device.status)]}>
+                  {device_status_label(device.status)}
+                </span>
+              </li>
+            </ul>
+          </div>
         </section>
 
         <div class="metrics-column">
@@ -137,6 +166,10 @@ defmodule ExklWeb.DashboardLive.Index do
   def mount(_params, _session, socket) do
     PubSub.subscribe(Exkl.PubSub, @pubsub_topic)
 
+    if connected?(socket) do
+      :timer.send_interval(@device_refresh_ms, self(), :refresh_devices)
+    end
+
     {os_type, os_name} = :os.type()
     {:ok, hostname} = :inet.gethostname()
 
@@ -145,6 +178,7 @@ defmodule ExklWeb.DashboardLive.Index do
      |> assign(:ak, %Exkl.AK{})
      |> assign(:cpu_history, [])
      |> assign(:gpu_history, [])
+     |> assign(:devices, Discovery.list())
      |> assign(:version, app_version())
      |> assign(:facts, %{
        os: "#{os_type} - #{os_name}",
@@ -171,6 +205,11 @@ defmodule ExklWeb.DashboardLive.Index do
   def handle_event("change_mode", %{"mode" => "cpu_util"}, socket) do
     Exkl.Core.change_mode(:cpu_util)
     {:noreply, reset_histories(socket)}
+  end
+
+  @impl true
+  def handle_info(:refresh_devices, socket) do
+    {:noreply, assign(socket, :devices, Discovery.list())}
   end
 
   @impl true
@@ -306,4 +345,17 @@ defmodule ExklWeb.DashboardLive.Index do
   end
 
   defp celsius_to_fahrenheit(celsius), do: celsius * 9.0 / 5.0 + 32.0
+
+  defp device_status_label(:connected), do: "Connected"
+  defp device_status_label(:detected), do: "Detected"
+  defp device_status_label(:unsupported), do: "Unsupported"
+
+  defp device_status_class(:connected), do: "device-status-connected"
+  defp device_status_class(:detected), do: "device-status-detected"
+  defp device_status_class(:unsupported), do: "device-status-unsupported"
+
+  defp device_family_label(nil), do: "Unknown protocol"
+  defp device_family_label(:ak_series), do: "AK series"
+  defp device_family_label(:ch_series), do: "CH series"
+  defp device_family_label(:g2_series), do: "G2 series"
 end

@@ -29,15 +29,71 @@ log() {
   echo "[+] $1"
 }
 
+warn() {
+  echo "[!] $1"
+}
+
 die() {
   echo "Error: $1" >&2
   exit 1
 }
 
-command -v mix >/dev/null 2>&1 || die "mix not found. Install Elixir/Erlang."
-command -v gcc >/dev/null 2>&1 || die "gcc not found."
-command -v sudo >/dev/null 2>&1 || die "sudo not found."
-command -v systemctl >/dev/null 2>&1 || die "systemctl not found."
+has_header() {
+  local header="$1"
+  [ -f "/usr/include/$header" ] || [ -f "/usr/local/include/$header" ]
+}
+
+check_dependencies() {
+  log "Checking build tools..."
+
+  command -v mix >/dev/null 2>&1 || die "mix not found. Install Elixir and Erlang/OTP."
+  command -v erl >/dev/null 2>&1 || die "erl not found. Install Erlang/OTP."
+  command -v gcc >/dev/null 2>&1 || die "gcc not found."
+  command -v make >/dev/null 2>&1 || die "make not found."
+  command -v sudo >/dev/null 2>&1 || die "sudo not found."
+  command -v systemctl >/dev/null 2>&1 || die "systemctl not found."
+
+  local missing=()
+
+  if ! pkg-config --exists libsensors 2>/dev/null && ! has_header "sensors/sensors.h"; then
+    missing+=("lm_sensors / libsensors development headers")
+  fi
+
+  if ! pkg-config --exists hidapi-hidraw 2>/dev/null \
+    && ! has_header "hidapi/hidapi.h" \
+    && ! has_header "hidapi.h"; then
+    missing+=("hidapi development headers (hidapi-hidraw)")
+  fi
+
+  if [ "${#missing[@]}" -gt 0 ]; then
+    echo
+    echo "Missing development libraries:"
+    for dep in "${missing[@]}"; do
+      echo "  - $dep"
+    done
+    echo
+    echo "Install examples:"
+    echo "  Arch / Manjaro:  sudo pacman -S erlang elixir gcc make lm_sensors hidapi wxwidgets-gtk3 webkit2gtk-4.1"
+    echo "  Fedora:          sudo dnf install erlang elixir gcc make lm_sensors-devel hidapi-devel wxGTK3-devel webkit2gtk4.1-devel"
+    echo "  Debian / Ubuntu: sudo apt install erlang elixir gcc make libsensors-dev libhidapi-dev libwxgtk3.2-dev libwebkit2gtk-4.1-dev"
+    die "Install the packages above, then re-run ./install.sh"
+  fi
+
+  if ! ldconfig -p 2>/dev/null | grep -q 'libwx_.*gtk'; then
+    warn "wxWidgets GTK libraries were not detected. The system tray / desktop window may fail to start."
+    warn "On Arch / Manjaro install: wxwidgets-gtk3 webkit2gtk-4.1"
+  fi
+
+  if [ -z "${DISPLAY:-}" ] && [ -z "${WAYLAND_DISPLAY:-}" ]; then
+    warn "No graphical session detected (DISPLAY / WAYLAND_DISPLAY unset)."
+    warn "EXKL can still be installed, but the desktop UI starts with your graphical session."
+  fi
+}
+
+check_dependencies
+
+log "Checking native NIF build dependencies..."
+make deps-check
 
 log "Fetching dependencies..."
 mix deps.get
@@ -52,7 +108,7 @@ log "Using SECRET_KEY_BASE=${SECRET_KEY_BASE:0:8}...(hidden)"
 log "Fetching production dependencies..."
 MIX_ENV="$ENV" mix deps.get --only prod
 
-log "Compiling project..."
+log "Compiling project (including native NIFs)..."
 MIX_ENV="$ENV" mix compile
 
 log "Deploying assets..."
@@ -125,7 +181,7 @@ fi
 
 cat > "$SERVICE_DIR/$SERVICE_FILE" <<EOF
 [Unit]
-Description=EXKL Application
+Description=EXKL — DeepCool Digital for Linux
 After=graphical-session.target
 PartOf=graphical-session.target
 
@@ -141,6 +197,7 @@ CapabilityBoundingSet=CAP_DAC_READ_SEARCH
 
 Environment=PHX_SERVER=true
 Environment=SECRET_KEY_BASE=$SECRET_KEY_BASE
+Environment=PORT=4500
 Environment=GTK_USE_PORTAL=1
 Environment=GDK_BACKEND=x11
 
@@ -158,7 +215,7 @@ systemctl --user enable "$SERVICE_NAME"
 if [ "$NEED_RELOGIN" = true ]; then
   echo
   echo "You were added to the '$UDEV_GROUP' group."
-  echo "EXKL may not access the HID device until you log out and back in."
+  echo "EXKL may not access DeepCool HID devices until you log out and back in."
   echo "The service was installed but not started yet."
 else
   systemctl --user restart "$SERVICE_NAME"
@@ -172,7 +229,7 @@ cat > "$AUTOSTART_FILE" <<EOF
 [Desktop Entry]
 Type=Application
 Name=EXKL
-Comment=EXKL Application
+Comment=DeepCool Digital display control for Linux
 Exec=/bin/sh -lc 'systemctl --user import-environment DISPLAY WAYLAND_DISPLAY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS XDG_CURRENT_DESKTOP; systemctl --user restart exkl.service'
 Terminal=false
 X-GNOME-Autostart-enabled=true
@@ -180,8 +237,15 @@ EOF
 
 echo
 echo "EXKL installed."
+echo
+echo "Dashboard:  http://localhost:4500"
+echo "Service:    systemctl --user status exkl.service"
+echo "Logs:       journalctl --user -u exkl.service -f"
+echo "Uninstall:  ./uninstall.sh"
+echo
 
 if [ "$NEED_RELOGIN" = true ]; then
+  echo "Log out and back in, then start EXKL with:"
+  echo "  systemctl --user start exkl.service"
   echo
-  echo "Please log out and back in, then start it with:"
 fi

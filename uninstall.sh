@@ -21,7 +21,10 @@ warn() {
   echo "[!] $1"
 }
 
-echo "This will uninstall EXKL from this user."
+echo "This will uninstall EXKL for user: $USER"
+echo "  - systemd user service"
+echo "  - XDG autostart entry"
+echo "  - release files in $EXKL_DIR"
 echo
 read -r -p "Do you want to proceed? (y/n): " choice
 
@@ -45,6 +48,7 @@ systemctl --user disable "$SERVICE_NAME" 2>/dev/null || true
 log "Killing leftover EXKL processes..."
 
 pkill -f "$EXKL_DIR/bin/exkl" 2>/dev/null || true
+pkill -f "beam.smp.*exkl" 2>/dev/null || true
 
 log "Removing user systemd service..."
 
@@ -76,22 +80,22 @@ case "$remove_udev" in
       log "Removing udev rules..."
       sudo rm -f "$UDEV_RULE_FILE"
       sudo udevadm control --reload-rules
-      sudo udevadm trigger
+      sudo udevadm trigger --subsystem-match=powercap --subsystem-match=hidraw
     else
-      warn "Udev rules not found."
+      warn "Udev rules not found at $UDEV_RULE_FILE"
     fi
 
     if [ -f "$LEGACY_UDEV_RULE_FILE" ]; then
       sudo rm -f "$LEGACY_UDEV_RULE_FILE"
       sudo udevadm control --reload-rules
-      sudo udevadm trigger
+      sudo udevadm trigger --subsystem-match=powercap --subsystem-match=hidraw
     fi
     ;;
   n|N)
-    warn "Keeping udev rule at $UDEV_RULE_FILE"
+    warn "Keeping udev rules at $UDEV_RULE_FILE"
     ;;
   *)
-    warn "Invalid choice. Keeping udev rule."
+    warn "Invalid choice. Keeping udev rules."
     ;;
 esac
 

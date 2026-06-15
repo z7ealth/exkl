@@ -65,4 +65,18 @@ defmodule Exkl.Display do
   end
 
   defp hex(value), do: String.pad_leading(Integer.to_string(value, 16), 4, "0")
+
+  @spec connected_product_ids() :: MapSet.t(non_neg_integer())
+  def connected_product_ids do
+    __MODULE__
+    |> Supervisor.which_children()
+    |> Enum.flat_map(fn
+      {{_module, product_id}, pid, :worker, _} when is_pid(pid) ->
+        if Process.alive?(pid), do: [product_id], else: []
+
+      _ ->
+        []
+    end)
+    |> MapSet.new()
+  end
 end
