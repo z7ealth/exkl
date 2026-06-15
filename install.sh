@@ -192,8 +192,6 @@ ExecStart=$EXEC_PATH start
 ExecStop=$EXEC_PATH stop
 Restart=on-failure
 RestartSec=5s
-AmbientCapabilities=CAP_DAC_READ_SEARCH
-CapabilityBoundingSet=CAP_DAC_READ_SEARCH
 
 Environment=PHX_SERVER=true
 Environment=SECRET_KEY_BASE=$SECRET_KEY_BASE
@@ -239,6 +237,7 @@ echo
 echo "EXKL installed."
 echo
 echo "UI:         Open 'Show window' from the system tray icon"
+echo "Observer:   $EXKL_DIR/bin/exkl remote   # then :observer.start()"
 echo "Wayland:    install.sh sets GDK_BACKEND=x11 in exkl.service (tray on GNOME Wayland)"
 echo "Service:    systemctl --user status exkl.service"
 echo "Logs:       journalctl --user -u exkl.service -f"

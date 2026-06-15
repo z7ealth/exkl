@@ -160,6 +160,7 @@ After install:
 - **UI:** open **Show window** from the EXKL system tray icon
 - **Logs:** `journalctl --user -u exkl.service -f`
 - **Status:** `systemctl --user status exkl.service`
+- **Observer:** `~/.config/exkl/bin/exkl remote`, then `:observer.start()`
 
 If you were added to the `exkl` group, **log out and back in** before the HID device is accessible.
 
@@ -199,6 +200,20 @@ GDK_BACKEND=x11 mix phx.server   # Wayland; optional on X11
 ```
 
 Open the UI from the system tray (**Show window**). Native NIFs are rebuilt automatically on `mix compile` via `elixir_make` and the project `Makefile`.
+
+### Observer
+
+With EXKL running (installed service or local release), attach a remote shell and start Observer:
+
+```bash
+~/.config/exkl/bin/exkl remote
+```
+
+```elixir
+:observer.start()
+```
+
+Use your install path if it is not `~/.config/exkl` (for example `_build/prod/rel/exkl/bin/exkl remote` after `MIX_ENV=prod mix release`).
 
 ## Adding a new device
 
