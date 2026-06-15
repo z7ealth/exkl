@@ -112,21 +112,20 @@
 
 html {
   height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow: hidden;
   font-size: 110%;
 }
 
 .dashboard-shell {
   font-family: var(--font-display);
-  min-height: 100dvh;
-  overflow-x: hidden;
-  overflow-y: auto;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .dashboard-bg {
   isolation: isolate;
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
   background:
     radial-gradient(ellipse 70% 55% at 12% 18%, oklch(68% 0.22 292 / 0.18), transparent 55%),
     radial-gradient(ellipse 55% 45% at 88% 12%, oklch(77% 0.15 200 / 0.14), transparent 50%),
@@ -869,21 +868,42 @@ html {
   }
 }
 
-@media (max-width: 1400px), (max-height: 820px) {
+@media (max-width: 1366px), (max-height: 768px) {
   html,
   .dashboard-shell {
     height: auto;
     min-height: 100dvh;
+    overflow-x: hidden;
     overflow-y: auto;
+    scroll-padding-top: 4.5rem;
   }
 
   .dashboard-bg {
     height: auto;
     min-height: 100dvh;
+    overflow: visible;
+    padding-top: env(safe-area-inset-top, 0.5rem);
+  }
+
+  .dashboard-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    padding-top: max(0.75rem, env(safe-area-inset-top, 0px));
+    background: oklch(from var(--color-base-100) l c h / 0.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid oklch(from var(--color-base-content) l c h / 0.06);
+  }
+
+  .dashboard-main {
+    align-items: flex-start;
+    padding: 0.75rem 0.75rem 1.5rem;
+    padding-top: 1.25rem;
   }
 
   .dashboard-grid {
     gap: 0.75rem;
+    padding-top: 0.5rem;
     padding-bottom: 1.5rem;
   }
 
