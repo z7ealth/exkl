@@ -106,7 +106,7 @@ The installer will:
 
 After install:
 
-- **Dashboard:** http://localhost:4500
+- **UI:** open **Show window** from the EXKL system tray icon
 - **Logs:** `journalctl --user -u exkl.service -f`
 - **Status:** `systemctl --user status exkl.service`
 
@@ -125,16 +125,10 @@ Removes the user service, autostart entry, and `~/.config/exkl`. Optionally remo
 ```bash
 mix setup          # deps + assets
 make all           # build NIFs only
-mix phx.server     # dev server (http://localhost:4000)
-```
-
-Native NIFs are rebuilt automatically on `mix compile` via `elixir_make` and the project `Makefile`.
-
-For the desktop tray locally:
-
-```bash
 GDK_BACKEND=x11 mix phx.server
 ```
+
+Open the UI from the system tray (**Show window**). Native NIFs are rebuilt automatically on `mix compile` via `elixir_make` and the project `Makefile`.
 
 ## Adding a new device
 

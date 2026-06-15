@@ -238,7 +238,7 @@ EOF
 echo
 echo "EXKL installed."
 echo
-echo "Dashboard:  http://localhost:4500"
+echo "UI:         Open 'Show window' from the system tray icon"
 echo "Service:    systemctl --user status exkl.service"
 echo "Logs:       journalctl --user -u exkl.service -f"
 echo "Uninstall:  ./uninstall.sh"
