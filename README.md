@@ -1,6 +1,6 @@
 # ![EXKL Logo](./priv/static/images/exkl_logo.png) EXKL
 
-Unofficial Linux control software for **DeepCool AK Digital** CPU coolers. EXKL drives the cooler top screen over USB, shows metrics in the tray window, and runs from the system tray.
+Unofficial Linux control software for **DeepCool Digital** CPU coolers, case displays, and related HID screens. EXKL drives the device over USB, shows metrics in the tray window, and runs from the system tray.
 
 Successor to the original Rust tray app [AKL](https://github.com/z7ealth/akl).
 
@@ -17,15 +17,17 @@ Successor to the original Rust tray app [AKL](https://github.com/z7ealth/akl).
 
 ## Supported devices
 
-USB vendor ID is always **3633** (`0x3633`). Display control is **validated on hardware** for:
+USB vendor ID is always **3633** (`0x3633`).
 
-| USB ID | Device |
-|--------|--------|
-| `3633:0003` | AK500 DIGITAL |
+| USB ID | Device | Protocol |
+|--------|--------|----------|
+| `3633:0003` | AK500 DIGITAL | AK series |
+| `3633:0007` | MORPHEUS (case display) | CH series (CPU + GPU) |
+| `3633:0029` | AK620 G2 DIGITAL NYX | G2 series |
 
-The same AK-series HID encoder also targets AK400, AK620 (legacy), and AK500S (PIDs `0001`, `0002`, `0004`) but those models have not been validated yet.
+The same **AK-series** encoder also targets AK400, AK620 (legacy), and AK500S (PIDs `0001`, `0002`, `0004`). Other **G2/NYX** AIOs (AK400/500/700 G2, USB IDs `3633:002a`–`3633:002c`) share the G2 encoder with the AK620 G2 NYX.
 
-Other DeepCool HID products (case displays, G2/NYX AIOs, etc.) are present in the codebase catalog but are **not supported** yet; they may show in the tray UI as **Detected** or **Unsupported**. See the [deepcool-digital-linux device list](https://github.com/Nortank12/deepcool-digital-linux/blob/main/device-list/README.md) for reference PIDs.
+Other DeepCool HID products may appear in the tray UI as **Detected** or **Unsupported** until added to the catalog. See the [deepcool-digital-linux device list](https://github.com/Nortank12/deepcool-digital-linux/blob/main/device-list/README.md) for reference PIDs.
 
 ## Dependencies
 
@@ -148,7 +150,7 @@ Open the UI from the system tray (**Show window**). Native NIFs are rebuilt auto
 
    The tray UI **DeepCool devices** panel should list it as Connected. Check logs for HID write errors.
 
-6. **Protocol tweaks** — if the family encoder is wrong, inspect packets in the matching `*_series.ex` module against [deepcool-digital-linux mapping tables](https://github.com/Nortank12/deepcool-digital-linux/tree/main/device-list/tables). New families (CH, G2, etc.) need a dedicated encoder module before the device can be listed as supported in this README.
+6. **Protocol tweaks** — if the family encoder is wrong, inspect packets in the matching `*_series.ex` module against [deepcool-digital-linux mapping tables](https://github.com/Nortank12/deepcool-digital-linux/tree/main/device-list/tables). Add the device to the **Supported devices** table in this README once it works on hardware.
 
 No changes to `Exkl.Display` are needed; discovery and workers are automatic once the catalog entry exists.
 
