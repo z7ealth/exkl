@@ -21,6 +21,33 @@ if System.get_env("PHX_SERVER") do
 end
 
 if config_env() == :prod do
+  read_env_file = fn key ->
+    env_path = Path.join(:code.root_dir(), "env")
+
+    with {:ok, contents} <- File.read(env_path),
+         value when is_binary(value) and value != "" <-
+           contents
+           |> String.split("\n")
+           |> Enum.find_value(fn line ->
+             line = String.trim(line)
+
+             cond do
+               line == "" or String.starts_with?(line, "#") ->
+                 nil
+
+               true ->
+                 case String.split(line, "=", parts: 2) do
+                   [^key, value] -> String.trim(value)
+                   _ -> nil
+                 end
+             end
+           end) do
+      value
+    else
+      _ -> nil
+    end
+  end
+
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
   # want to use a different value for prod and you most likely don't want
@@ -28,10 +55,18 @@ if config_env() == :prod do
   # variable instead.
   secret_key_base =
     System.get_env("SECRET_KEY_BASE") ||
+      read_env_file.("SECRET_KEY_BASE") ||
       raise """
       environment variable SECRET_KEY_BASE is missing.
-      You can generate one by calling: mix phx.gen.secret
+      Re-run ./install.sh to generate ~/.config/exkl/env
       """
+
+  if byte_size(secret_key_base) < 64 do
+    raise """
+    SECRET_KEY_BASE must be at least 64 bytes (#{byte_size(secret_key_base)} given).
+    Re-run ./install.sh to generate a new key.
+    """
+  end
 
   host = System.get_env("PHX_HOST") || "localhost"
   port = String.to_integer(System.get_env("PORT") || "4500")

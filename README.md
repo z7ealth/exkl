@@ -99,9 +99,10 @@ The installer will:
 1. Check dependencies and compile native NIFs
 2. Build a production release
 3. Install to `~/.config/exkl`
-4. Create udev rules (`/etc/udev/rules.d/99-exkl.rules`) and add your user to the `exkl` group
-5. Enable the user systemd service `exkl.service` (includes `GDK_BACKEND=x11` for Wayland tray support)
-6. Install a GNOME/desktop launcher (`~/.local/share/applications/exkl.desktop`) and `bin/launch` to start the service
+4. Generate a fresh `SECRET_KEY_BASE` in `~/.config/exkl/env` (used by the systemd service)
+5. Create udev rules (`/etc/udev/rules.d/99-exkl.rules`) and add your user to the `exkl` group
+6. Enable the user systemd service `exkl.service` (includes `GDK_BACKEND=x11` for Wayland tray support)
+7. Install a GNOME/desktop launcher (`~/.local/share/applications/exkl.desktop`) and `bin/launch` to start the service
 
 After install:
 

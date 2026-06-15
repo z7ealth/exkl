@@ -103,13 +103,6 @@ make deps-check
 log "Fetching dependencies..."
 mix deps.get
 
-if [[ -z "${SECRET_KEY_BASE:-}" ]]; then
-  log "Generating SECRET_KEY_BASE..."
-  SECRET_KEY_BASE="$(mix phx.gen.secret)"
-fi
-
-log "Using SECRET_KEY_BASE=${SECRET_KEY_BASE:0:8}...(hidden)"
-
 log "Fetching production dependencies..."
 MIX_ENV="$ENV" mix deps.get --only prod
 
@@ -151,6 +144,23 @@ cp -a "_build/$ENV/rel/$APP_NAME/." "$EXKL_DIR/"
 install -d "$(dirname "$ICON_PATH")"
 cp "priv/static/images/exkl_logo.png" "$ICON_PATH"
 chmod +x "$LAUNCH_PATH"
+
+log "Generating SECRET_KEY_BASE..."
+SECRET_KEY_BASE="$(mix phx.gen.secret | tr -d '[:space:]')"
+
+log "Writing runtime environment to $EXKL_DIR/env..."
+umask 077
+cat > "$EXKL_DIR/env" <<EOF
+PHX_SERVER=true
+SECRET_KEY_BASE=$SECRET_KEY_BASE
+PORT=4500
+GTK_USE_PORTAL=1
+GDK_BACKEND=x11
+EOF
+chmod 600 "$EXKL_DIR/env"
+umask 022
+
+log "Using SECRET_KEY_BASE=${SECRET_KEY_BASE:0:8}...(hidden, stored in $EXKL_DIR/env)"
 
 log "Creating udev rules..."
 
@@ -202,11 +212,7 @@ ExecStop=$EXEC_PATH stop
 Restart=on-failure
 RestartSec=5s
 
-Environment=PHX_SERVER=true
-Environment=SECRET_KEY_BASE=$SECRET_KEY_BASE
-Environment=PORT=4500
-Environment=GTK_USE_PORTAL=1
-Environment=GDK_BACKEND=x11
+EnvironmentFile=$EXKL_DIR/env
 
 StandardOutput=journal
 StandardError=journal

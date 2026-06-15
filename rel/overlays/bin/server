@@ -1,5 +1,14 @@
 #!/bin/sh
 set -eu
 
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+if [ -f "$ROOT/env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  . "$ROOT/env"
+  set +a
+fi
+
 cd -P -- "$(dirname -- "$0")"
-PHX_SERVER=true exec ./exkl start
+exec ./exkl start
