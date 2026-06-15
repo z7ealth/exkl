@@ -38,6 +38,7 @@ Unofficial Linux control software for **DeepCool Digital** CPU coolers, case dis
 |-----------|---------|
 | `rocm-smi` / AMDGPU sysfs | AMD GPU metrics |
 | Intel RAPL (`/sys/class/powercap`) | CPU power (udev rule installed by `install.sh`) |
+| `intel-gpu-tools` (`intel_gpu_top`) | Intel GPU utilization on Xe/i915 when sysfs busy counters are unavailable |
 | NVIDIA proprietary driver (`nvidia-smi`) | NVIDIA GPU load, temperature, frequency, and power |
 
 ### GPU metrics
@@ -45,7 +46,7 @@ Unofficial Linux control software for **DeepCool Digital** CPU coolers, case dis
 | GPU | How EXKL reads metrics |
 |-----|------------------------|
 | **AMD** | AMDGPU sysfs / lm_sensors |
-| **Intel** | i915/xe sysfs / lm_sensors |
+| **Intel** | i915/xe sysfs hwmon (`temp2_input`, `tile*/gt*/freq0/*`) and optional `intel-gpu-tools` (`intel_gpu_top`) for utilization |
 | **NVIDIA** | **`nvidia-smi` (proprietary driver only)** |
 
 **NVIDIA:** the open-source **nouveau** driver does not provide `nvidia-smi`. Install the **proprietary NVIDIA driver** if you want GPU metrics on the dashboard or on dual CPU/GPU displays (e.g. MORPHEUS, CH360/CH560). Without it, NVIDIA GPU load and related metrics are unavailable.

@@ -8,7 +8,7 @@ defmodule Exkl.GpuSensors do
 
   @spec temp_celsius() :: float() | nil
   def temp_celsius do
-    nvidia_temp() || sensors_temp()
+    nvidia_temp() || intel_sysfs_temp() || sensors_temp()
   end
 
   @spec utilization() :: float() | nil
@@ -97,7 +97,35 @@ defmodule Exkl.GpuSensors do
   end
 
   defp intel_util do
-    intel_sysfs_util() || intel_gpu_top_util()
+    intel_sysfs_util() || intel_gpu_top_json_util() || intel_gpu_top_util()
+  end
+
+  defp intel_sysfs_temp do
+    intel_device_paths()
+    |> Enum.find_value(&read_intel_hwmon_temp/1)
+  end
+
+  defp read_intel_hwmon_temp(device_path) do
+    ["temp2_input", "temp1_input", "temp3_input"]
+    |> Enum.find_value(fn file ->
+      device_path
+      |> Path.join("hwmon/hwmon*/#{file}")
+      |> Path.wildcard()
+      |> Enum.find_value(&read_millidegree_temp/1)
+    end)
+  end
+
+  defp read_millidegree_temp(path) do
+    case File.read(path) do
+      {:ok, content} ->
+        case Integer.parse(String.trim(content)) do
+          {millidegrees, _} when millidegrees > 0 -> millidegrees / 1000.0
+          _ -> nil
+        end
+
+      _ ->
+        nil
+    end
   end
 
   defp intel_sysfs_util do
@@ -111,16 +139,27 @@ defmodule Exkl.GpuSensors do
   end
 
   defp read_intel_card_freq(device_path) do
-    [
-      Path.join(device_path, "gt/gt0/rps/cur_freq"),
-      Path.join(device_path, "gt/gt1/rps/cur_freq")
-    ]
+    device_path
+    |> intel_freq_paths()
     |> Enum.find_value(fn path ->
       case File.read(path) do
         {:ok, content} -> parse_freq_mhz(content)
         _ -> nil
       end
     end) || read_hwmon_freq(device_path)
+  end
+
+  defp intel_freq_paths(device_path) do
+    legacy = [
+      Path.join(device_path, "gt/gt0/rps/cur_freq"),
+      Path.join(device_path, "gt/gt1/rps/cur_freq")
+    ]
+
+    xe =
+      Path.wildcard(Path.join(device_path, "tile*/gt*/freq0/cur_freq")) ++
+        Path.wildcard(Path.join(device_path, "tile*/gt*/freq0/act_freq"))
+
+    legacy ++ xe
   end
 
   defp read_hwmon_freq(device_path) do
@@ -140,10 +179,15 @@ defmodule Exkl.GpuSensors do
   end
 
   defp busy_paths(device_path) do
-    gt_glob = Path.join(device_path, "gt/gt*/busy_percent")
+    xe_and_legacy =
+      [
+        Path.join(device_path, "gt/gt*/busy_percent"),
+        Path.join(device_path, "tile*/gt*/busy_percent"),
+        Path.join(device_path, "tile*/gt*/engine/*/busy_percent")
+      ]
+      |> Enum.flat_map(&Path.wildcard/1)
 
-    [gt_glob | legacy_busy_paths(device_path)]
-    |> Enum.flat_map(&Path.wildcard/1)
+    xe_and_legacy ++ legacy_busy_paths(device_path)
   end
 
   defp legacy_busy_paths(device_path) do
@@ -153,17 +197,89 @@ defmodule Exkl.GpuSensors do
     end
   end
 
+  defp intel_gpu_top_json_util do
+    case run_intel_gpu_top(["-J", "-s", "400", "-o", "-"]) do
+      nil -> nil
+      output -> parse_intel_gpu_top_json(output)
+    end
+  end
+
   defp intel_gpu_top_util do
+    case run_intel_gpu_top(["-o", "-", "-s", "400"]) do
+      nil -> nil
+      output -> parse_intel_gpu_top(output)
+    end
+  end
+
+  defp run_intel_gpu_top(args) do
     case System.find_executable("intel_gpu_top") do
       nil ->
         nil
 
       path ->
-        case System.cmd(path, ["-o", "-", "-s", "400"], stderr_to_stdout: true) do
-          {output, _} -> parse_intel_gpu_top(output)
+        {cmd, cmd_args} =
+          case System.find_executable("timeout") do
+            nil -> {path, args}
+            timeout -> {timeout, ["2s", path | args]}
+          end
+
+        case System.cmd(cmd, cmd_args, stderr_to_stdout: true) do
+          {output, _} -> output
         end
     end
   end
+
+  defp parse_intel_gpu_top_json(output) do
+    output
+    |> String.split("\n", trim: true)
+    |> Enum.reverse()
+    |> Enum.find_value(&decode_intel_gpu_top_json_line/1)
+    |> case do
+      nil -> parse_intel_gpu_top_json_blob(output)
+      value -> value
+    end
+  end
+
+  defp decode_intel_gpu_top_json_line(line) do
+    case Jason.decode(line) do
+      {:ok, %{"engines" => engines}} -> max_engine_busy(engines)
+      _ -> nil
+    end
+  end
+
+  defp parse_intel_gpu_top_json_blob(output) do
+    case Jason.decode(output) do
+      {:ok, %{"engines" => engines}} ->
+        max_engine_busy(engines)
+
+      {:ok, records} when is_list(records) ->
+        records
+        |> Enum.find_value(fn
+          %{"engines" => engines} -> max_engine_busy(engines)
+          _ -> nil
+        end)
+
+      _ ->
+        nil
+    end
+  end
+
+  defp max_engine_busy(engines) when is_map(engines) do
+    engines
+    |> Enum.reduce(nil, fn
+      {_name, %{"busy" => busy}}, acc when is_number(busy) and busy >= 0 and busy <= 100 ->
+        max_util(acc, busy)
+
+      _, acc ->
+        acc
+    end)
+  end
+
+  defp max_engine_busy(_), do: nil
+
+  defp max_util(nil, value), do: value
+  defp max_util(current, value) when value > current, do: value
+  defp max_util(current, _value), do: current
 
   defp parse_intel_gpu_top(output) do
     output
@@ -245,11 +361,14 @@ defmodule Exkl.GpuSensors do
 
       line ->
         case Float.parse(line) do
-          {value, _} when value > 0 -> value
+          {value, _} when value > 0 -> normalize_freq_mhz(value)
           _ -> nil
         end
     end
   end
+
+  defp normalize_freq_mhz(value) when value >= 10_000, do: value / 1_000_000.0
+  defp normalize_freq_mhz(value), do: value * 1.0
 
   defp parse_power_watts(content) do
     content

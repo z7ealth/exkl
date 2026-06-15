@@ -2,8 +2,11 @@ defmodule Exkl.Desktop do
   @behaviour :wx_object
 
   @title "EXKL"
-  @size {1600, 900}
   @icon_path Path.join(:code.priv_dir(:exkl), "static/images/exkl_logo.png")
+  @aspect_w 16
+  @aspect_h 9
+  @frame_margin 96
+  @default_min_width 1280
 
   require Logger
 
@@ -15,7 +18,8 @@ defmodule Exkl.Desktop do
     wx = :wx.new()
     :wx.debug(:verbose)
 
-    frame = :wxFrame.new(wx, -1, @title, size: @size)
+    min_size = min_window_size()
+    frame = :wxFrame.new(wx, -1, @title, size: min_size)
     icon = build_icon()
 
     task_bar = build_taskbar(icon)
@@ -27,7 +31,7 @@ defmodule Exkl.Desktop do
     :wxFrame.setIcon(frame, icon)
     :wxFrame.connect(frame, :close_window)
     :wxTaskBarIcon.connect(task_bar, :command_menu_selected)
-    :wxFrame.setMinSize(frame, @size)
+    :wxFrame.setMinSize(frame, min_size)
 
     state = %{frame: frame, task_bar: task_bar, web_view: web_view}
     {frame, state}
@@ -39,8 +43,7 @@ defmodule Exkl.Desktop do
   end
 
   def handle_event({:wx, 1, _, _, {:wxCommand, :command_menu_selected, _, _, _}}, state) do
-    # Show the main frame
-    :wxFrame.show(state.frame)
+    show_frame(state.frame)
     {:noreply, state}
   end
 
@@ -110,4 +113,36 @@ defmodule Exkl.Desktop do
       :wxIcon.new()
     end
   end
+
+  defp show_frame(frame) do
+    :wxFrame.show(frame)
+    :wxFrame.maximize(frame)
+    :wxFrame.raise(frame)
+    :ok
+  end
+
+  defp min_window_size do
+    display = :wxDisplay.new()
+    {_x, _y, width, height} = :wxDisplay.getClientArea(display)
+    :wxDisplay.destroy(display)
+
+    available_w = max(width - @frame_margin, 640)
+    available_h = max(height - @frame_margin, 360)
+
+    target_w = min(@default_min_width, trunc(available_w * 0.85))
+    target_h = aspect_height(target_w)
+
+    {target_w, target_h} =
+      if target_h > available_h do
+        fitted_h = available_h
+        {aspect_width(fitted_h), fitted_h}
+      else
+        {target_w, target_h}
+      end
+
+    {max(target_w, 640), max(target_h, 360)}
+  end
+
+  defp aspect_height(width), do: div(width * @aspect_h, @aspect_w)
+  defp aspect_width(height), do: div(height * @aspect_w, @aspect_h)
 end
