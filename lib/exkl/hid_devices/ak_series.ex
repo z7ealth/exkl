@@ -13,22 +13,22 @@ defmodule Exkl.HidDevices.AkSeries do
 
   @spec startup() :: binary()
   def startup do
-    build_packet(:start, 0.0, 0.0)
+    build_packet(:start, 0.0)
   end
 
-  defp encode_metrics(%Exkl.AK{mode: mode, metrics_value: value, cpu_util: cpu_util}) do
-    build_packet(mode, value, cpu_util || 0.0)
+  defp encode_metrics(%Exkl.AK{mode: mode, metrics_value: value}) do
+    build_packet(mode, value)
   end
 
-  defp build_packet(:start, _value, _cpu_usage) do
+  defp build_packet(:start, _value) do
     List.duplicate(0, 64)
     |> List.replace_at(0, 16)
     |> List.replace_at(1, @display_modes.start)
-    |> List.replace_at(2, 1)
+    |> List.replace_at(2, Exkl.Bar.segments(0, :start))
     |> :binary.list_to_bin()
   end
 
-  defp build_packet(mode, value, cpu_usage) do
+  defp build_packet(mode, value) do
     {mode_byte, digits} =
       case mode do
         :cpu_util -> {@display_modes.utilization, value_digits(value)}
@@ -36,14 +36,7 @@ defmodule Exkl.HidDevices.AkSeries do
         _ -> {@display_modes.celsius, temp_digits(value)}
       end
 
-    bar_usage = if mode == :cpu_util, do: value, else: cpu_usage
-
-    bar =
-      if bar_usage < 15.0 do
-        1
-      else
-        bar_usage / 10.0 |> round() |> min(10) |> max(1)
-      end
+    bar = Exkl.Bar.segments(value, mode)
 
     List.duplicate(0, 64)
     |> List.replace_at(0, 16)
@@ -67,10 +60,10 @@ defmodule Exkl.HidDevices.AkSeries do
   defp integer_digits(n) when n < 1000, do: {div(n, 100), div(rem(n, 100), 10), rem(n, 10)}
   defp integer_digits(_), do: {9, 9, 9}
 
-  defp value_digits(value) when value < 0 or value > 100, do: {0, 0, 0}
+  defp value_digits(value) when value < 0, do: {0, 0, 0}
 
   defp value_digits(value) do
-    scaled = value |> round() |> min(100)
+    scaled = value |> round() |> min(100) |> max(0)
     {div(scaled, 100), div(rem(scaled, 100), 10), rem(scaled, 10)}
   end
 

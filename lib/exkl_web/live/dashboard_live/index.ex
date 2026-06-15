@@ -266,16 +266,8 @@ defmodule ExklWeb.DashboardLive.Index do
   defp metric_unit(:cpu_util), do: "%"
   defp metric_unit(_), do: ""
 
-  defp metric_progress(%{mode: :cpu_util, metrics_value: value}) do
-    value |> clamp(0, 100) |> Float.round(1)
-  end
-
-  defp metric_progress(%{mode: :cpu_temp_c, metrics_value: value}) do
-    ((value - 30) / 70 * 100) |> clamp(0, 100) |> Float.round(1)
-  end
-
-  defp metric_progress(%{mode: :cpu_temp_f, metrics_value: value}) do
-    ((value - 86) / 126 * 100) |> clamp(0, 100) |> Float.round(1)
+  defp metric_progress(%{mode: mode, metrics_value: value}) when mode != :start do
+    value |> Exkl.Bar.progress(mode) |> Float.round(1)
   end
 
   defp metric_progress(_), do: 0.0
@@ -300,31 +292,18 @@ defmodule ExklWeb.DashboardLive.Index do
   defp gpu_metric_progress(%{mode: :cpu_util, gpu_util: nil}), do: 0.0
 
   defp gpu_metric_progress(%{mode: :cpu_util, gpu_util: util}) do
-    util |> clamp(0, 100) |> Float.round(1)
+    util |> Exkl.Bar.progress(:cpu_util) |> Float.round(1)
   end
 
   defp gpu_metric_progress(%{gpu_temp_c: nil}), do: 0.0
 
   defp gpu_metric_progress(%{gpu_temp_c: temp, mode: :cpu_temp_f}) do
-    celsius_to_fahrenheit(temp) |> temp_progress_fahrenheit() |> Float.round(1)
+    temp |> celsius_to_fahrenheit() |> Exkl.Bar.progress(:cpu_temp_f) |> Float.round(1)
   end
 
   defp gpu_metric_progress(%{gpu_temp_c: temp}) do
-    temp |> temp_progress_celsius() |> Float.round(1)
-  end
-
-  defp temp_progress_celsius(value) do
-    ((value - 30) / 70 * 100) |> clamp(0, 100)
-  end
-
-  defp temp_progress_fahrenheit(value) do
-    ((value - 86) / 126 * 100) |> clamp(0, 100)
+    temp |> Exkl.Bar.progress(:cpu_temp_c) |> Float.round(1)
   end
 
   defp celsius_to_fahrenheit(celsius), do: celsius * 9.0 / 5.0 + 32.0
-
-  defp clamp(value, min, _max) when value < min, do: min * 1.0
-  defp clamp(value, _min, max) when value > max, do: max * 1.0
-  defp clamp(value, _min, _max) when is_integer(value), do: value * 1.0
-  defp clamp(value, _min, _max), do: value
 end
