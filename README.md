@@ -2,8 +2,6 @@
 
 Unofficial Linux control software for **DeepCool Digital** CPU coolers, case displays, and related HID screens. EXKL drives the device over USB, shows metrics in the tray window, and runs from the system tray.
 
-Successor to the original Rust tray app [AKL](https://github.com/z7ealth/akl).
-
 <img src="./priv/static/images/ak_cooler.jpeg" alt="AK Cooler" style="width: 400px;" />
 
 ## Features
@@ -14,6 +12,65 @@ Successor to the original Rust tray app [AKL](https://github.com/z7ealth/akl).
 - System tray icon with window, About dialog, and Exit
 - User systemd service + XDG autostart fallback
 - udev rules for HID access and Intel RAPL CPU power readings
+
+## Architecture
+
+EXKL is an OTP application. The root supervisor starts Phoenix, metrics collection, HID device workers, and the desktop tray UI.
+
+### Supervisor tree
+
+```mermaid
+graph TD
+  Root["Exkl.Supervisor<br/><i>one_for_one</i>"]
+
+  Root --> Telemetry["ExklWeb.Telemetry<br/><i>one_for_one</i>"]
+  Root --> DNS["DNSCluster"]
+  Root --> PubSub["Phoenix.PubSub"]
+  Root --> Endpoint["ExklWeb.Endpoint"]
+  Root --> Core["Exkl.Core<br/><i>GenServer</i>"]
+  Root --> Display["Exkl.Display<br/><i>one_for_one</i>"]
+  Root --> GUI["Exkl.GUI<br/><i>GenServer</i>"]
+
+  Telemetry --> Poller["telemetry_poller"]
+
+  Display --> Worker1["Exkl.Display.Worker<br/><i>GenServer</i>"]
+  Display --> WorkerN["Exkl.Display.Worker …<br/><i>one per connected device</i>"]
+
+  GUI --> Desktop["Exkl.Desktop<br/><i>wx object</i>"]
+  Desktop --> Tray["wxTaskBarIcon"]
+  Desktop --> Window["wxFrame + WebView"]
+```
+
+`Exkl.Display` discovers DeepCool HID devices (vendor `3633`) at startup and starts one `Exkl.Display.Worker` per successfully opened device. `Exkl.GUI` starts `Exkl.Desktop`, which owns the system tray icon and the embedded dashboard window.
+
+### Data flow
+
+```mermaid
+flowchart LR
+  subgraph sources["System metrics"]
+    NIF["SensorsNif / hidapi NIFs"]
+    Sysfs["sysfs / RAPL / lm_sensors"]
+  end
+
+  Core["Exkl.Core"]
+  PubSub["Phoenix.PubSub<br/>cpu_metrics"]
+  Workers["Display.Worker"]
+  HID["USB HID display"]
+  Endpoint["ExklWeb.Endpoint"]
+  LV["DashboardLive"]
+  WebView["Desktop WebView"]
+
+  Sysfs --> Core
+  NIF --> Core
+  Core -->|"broadcast every 1s"| PubSub
+  PubSub --> Workers
+  PubSub --> LV
+  Workers -->|"encode + write"| HID
+  Endpoint --> LV
+  WebView --> Endpoint
+```
+
+`Exkl.Core` polls CPU/GPU sensors on a timer and publishes `{:cpu_metrics, %Exkl.AK{}}` on PubSub. HID workers subscribe and push encoded packets to the cooler display; the Phoenix LiveView dashboard subscribes to the same topic for the web UI.
 
 ## Supported devices
 
