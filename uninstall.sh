@@ -9,6 +9,8 @@ SERVICE_DIR="$HOME/.config/systemd/user"
 
 AUTOSTART_FILE="$HOME/.config/autostart/exkl.desktop"
 
+DESKTOP_APP_FILE="$HOME/.local/share/applications/exkl.desktop"
+
 UDEV_GROUP="exkl"
 UDEV_RULE_FILE="/etc/udev/rules.d/99-exkl.rules"
 LEGACY_UDEV_RULE_FILE="/etc/udev/rules.d/99-exkl-hid.rules"
@@ -24,6 +26,7 @@ warn() {
 echo "This will uninstall EXKL for user: $USER"
 echo "  - systemd user service"
 echo "  - XDG autostart entry"
+echo "  - desktop launcher entry"
 echo "  - release files in $EXKL_DIR"
 echo
 read -r -p "Do you want to proceed? (y/n): " choice
@@ -63,6 +66,13 @@ log "Removing autostart entry..."
 
 if [ -f "$AUTOSTART_FILE" ]; then
   rm -f "$AUTOSTART_FILE"
+fi
+
+log "Removing desktop entry..."
+
+if [ -f "$DESKTOP_APP_FILE" ]; then
+  rm -f "$DESKTOP_APP_FILE"
+  update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
 fi
 
 log "Removing application files..."

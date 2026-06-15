@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+# Start EXKL via the user systemd unit. No-op if already running.
+systemctl --user start --no-block exkl.service

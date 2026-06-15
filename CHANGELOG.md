@@ -19,8 +19,8 @@ Compared to [0.1.0](https://github.com/z7ealth/exkl/commit/aa31fe96ce2569ccdfe14
 - **Tray About dialog** — app name, version, description, copyright, and license link.
 - **`Exkl.Bar`** — shared segment logic for the HID utilization bar (displayed value ÷ 10, 0–10 segments).
 - **Native build tooling** — `Makefile` with `deps-check` and `elixir_make` integration.
-- **Documentation** — architecture diagrams (supervisor tree + data flow), dependency tables per distro, device-add guide, Wayland tray notes, and Observer instructions (`bin/exkl remote` → `:observer.start()`).
-- **Distributed release node** — release runs as `exkl@127.0.0.1` so `bin/exkl remote` can attach to a running instance.
+- **Documentation** — architecture diagrams (supervisor tree + data flow), dependency tables per distro, device-add guide, Wayland tray notes, GNOME launcher/dock notes, and Observer instructions (`bin/exkl remote` → `:observer.start()`).
+- **GNOME integration** — `exkl.desktop` launcher (`bin/launch` → `systemctl --user start`) and dock name/icon via `StartupWMClass` matching.
 
 ### Changed
 
@@ -37,6 +37,8 @@ Compared to [0.1.0](https://github.com/z7ealth/exkl/commit/aa31fe96ce2569ccdfe14
 - **AK620 G2 NYX** — G2-series packet encoding and device support.
 - **systemd user service** — removed `AmbientCapabilities` / `CapabilityBoundingSet` (not permitted in user units; caused exit status 218).
 - **Wayland tray** — documented `GDK_BACKEND=x11` for GNOME Wayland; install sets it in `exkl.service`.
+- **GNOME dock label** — shows **EXKL** and the app icon instead of a generic Erlang entry when matched via the installed `.desktop` file.
+- **System tray icon** — tray uses the full-size app icon again (blank icon when scaled via `wxIconBundle` on a large PNG).
 
 ### Removed
 

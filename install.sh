@@ -10,9 +10,14 @@ SERVICE_NAME="exkl"
 SERVICE_FILE="$SERVICE_NAME.service"
 SERVICE_DIR="$HOME/.config/systemd/user"
 EXEC_PATH="$EXKL_DIR/bin/exkl"
+LAUNCH_PATH="$EXKL_DIR/bin/launch"
 
 AUTOSTART_DIR="$HOME/.config/autostart"
 AUTOSTART_FILE="$AUTOSTART_DIR/exkl.desktop"
+
+DESKTOP_APP_DIR="$HOME/.local/share/applications"
+DESKTOP_APP_FILE="$DESKTOP_APP_DIR/exkl.desktop"
+ICON_PATH="$EXKL_DIR/share/exkl.png"
 
 UDEV_GROUP="exkl"
 UDEV_RULE_FILE="/etc/udev/rules.d/99-exkl.rules"
@@ -143,6 +148,10 @@ log "Installing release to $EXKL_DIR..."
 install -d "$EXKL_DIR"
 cp -a "_build/$ENV/rel/$APP_NAME/." "$EXKL_DIR/"
 
+install -d "$(dirname "$ICON_PATH")"
+cp "priv/static/images/exkl_logo.png" "$ICON_PATH"
+chmod +x "$LAUNCH_PATH"
+
 log "Creating udev rules..."
 
 if ! getent group "$UDEV_GROUP" >/dev/null 2>&1; then
@@ -228,15 +237,38 @@ cat > "$AUTOSTART_FILE" <<EOF
 Type=Application
 Name=EXKL
 Comment=DeepCool Digital display control for Linux
+Icon=$ICON_PATH
+StartupWMClass=Erlang
 Exec=/bin/sh -lc 'systemctl --user import-environment DISPLAY WAYLAND_DISPLAY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS XDG_CURRENT_DESKTOP; systemctl --user restart exkl.service'
 Terminal=false
 X-GNOME-Autostart-enabled=true
 EOF
 
+log "Installing desktop entry for GNOME dock name and icon..."
+
+install -d "$DESKTOP_APP_DIR"
+
+cat > "$DESKTOP_APP_FILE" <<EOF
+[Desktop Entry]
+Type=Application
+Name=EXKL
+Comment=DeepCool Digital display control for Linux
+Icon=$ICON_PATH
+StartupWMClass=Erlang
+Exec=$LAUNCH_PATH
+Terminal=false
+Categories=Utility;
+EOF
+
+if command -v update-desktop-database >/dev/null 2>&1; then
+  update-desktop-database "$DESKTOP_APP_DIR" 2>/dev/null || true
+fi
+
 echo
 echo "EXKL installed."
 echo
 echo "UI:         Open 'Show window' from the system tray icon"
+echo "Launcher:   EXKL in the app menu (or: $LAUNCH_PATH)"
 echo "Observer:   $EXKL_DIR/bin/exkl remote   # then :observer.start()"
 echo "Wayland:    install.sh sets GDK_BACKEND=x11 in exkl.service (tray on GNOME Wayland)"
 echo "Service:    systemctl --user status exkl.service"

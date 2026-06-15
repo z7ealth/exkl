@@ -16,11 +16,15 @@ defmodule Exkl.Desktop do
     :wx.debug(:verbose)
 
     frame = :wxFrame.new(wx, -1, @title, size: @size)
+    icon = build_icon()
 
-    task_bar = build_taskbar()
+    task_bar = build_taskbar(icon)
     web_view = build_webview(frame)
 
-    :wxFrame.setIcon(frame, build_icon())
+    :wxWindow.setName(frame, "exkl")
+    :wxWindow.setName(web_view, "exkl")
+    :wxTopLevelWindow.setIcons(frame, :wxIconBundle.new(icon))
+    :wxFrame.setIcon(frame, icon)
     :wxFrame.connect(frame, :close_window)
     :wxTaskBarIcon.connect(task_bar, :command_menu_selected)
     :wxFrame.setMinSize(frame, @size)
@@ -53,9 +57,9 @@ defmodule Exkl.Desktop do
 
   defp build_webview(frame), do: :wxWebView.new(frame, 0, url: "http://localhost:4500")
 
-  defp build_taskbar do
+  defp build_taskbar(icon) do
     task_bar = :wxTaskBarIcon.new(createPopupMenu: fn -> build_menu() end)
-    :wxTaskBarIcon.setIcon(task_bar, build_icon())
+    :wxTaskBarIcon.setIcon(task_bar, icon)
 
     task_bar
   end
@@ -99,5 +103,11 @@ defmodule Exkl.Desktop do
     item
   end
 
-  defp build_icon, do: :wxIcon.new(@icon_path)
+  defp build_icon do
+    if File.exists?(@icon_path) do
+      :wxIcon.new(@icon_path)
+    else
+      :wxIcon.new()
+    end
+  end
 end

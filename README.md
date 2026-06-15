@@ -10,7 +10,7 @@ Unofficial Linux control software for **DeepCool Digital** CPU coolers, case dis
 - Live metrics on the cooler display: CPU temperature (°C / °F) and CPU utilization
 - Dashboard (embedded tray window) with CPU/GPU temperature, load, frequency, and power
 - System tray icon with window, About dialog, and Exit
-- User systemd service + XDG autostart fallback
+- User systemd service + XDG autostart fallback + GNOME application launcher
 - udev rules for HID access and Intel RAPL CPU power readings
 
 ## Dependencies
@@ -81,15 +81,23 @@ The installer will:
 3. Install to `~/.config/exkl`
 4. Create udev rules (`/etc/udev/rules.d/99-exkl.rules`) and add your user to the `exkl` group
 5. Enable the user systemd service `exkl.service` (includes `GDK_BACKEND=x11` for Wayland tray support)
+6. Install a GNOME/desktop launcher (`~/.local/share/applications/exkl.desktop`) and `bin/launch` to start the service
 
 After install:
 
 - **UI:** open **Show window** from the EXKL system tray icon
+- **Launcher:** **EXKL** in the application menu — starts the service if it is not running (no-op while already running)
 - **Logs:** `journalctl --user -u exkl.service -f`
 - **Status:** `systemctl --user status exkl.service`
 - **Observer:** `~/.config/exkl/bin/exkl remote`, then `:observer.start()`
 
 If you were added to the `exkl` group, **log out and back in** before the HID device is accessible.
+
+### GNOME dock and launcher
+
+On GNOME, the running window is matched to `~/.local/share/applications/exkl.desktop` so the dock shows the **EXKL** name and icon instead of a generic Erlang entry. The wx frame title and tray icon are set in `Exkl.Desktop`.
+
+The desktop launcher runs `~/.config/exkl/bin/launch`, which calls `systemctl --user start exkl.service`. If EXKL is already running, clicking the launcher does nothing — use the tray menu to open the window.
 
 ### Wayland vs X11 (system tray)
 
@@ -114,7 +122,7 @@ GDK_BACKEND=x11 mix phx.server
 ./uninstall.sh
 ```
 
-Removes the user service, autostart entry, and `~/.config/exkl`. Optionally removes udev rules and the `exkl` group.
+Removes the user service, autostart entry, desktop launcher, and `~/.config/exkl`. Optionally removes udev rules and the `exkl` group.
 
 ## Architecture
 
