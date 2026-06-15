@@ -13,7 +13,7 @@ Compared to [0.1.0](https://github.com/z7ealth/exkl/commit/aa31fe96ce2569ccdfe14
 - **Multi-device HID support** — auto-discovery of DeepCool USB HID devices (vendor `3633`) with one worker per connected display.
 - **Protocol families** — modular encoders for AK series, CH series (CPU + GPU case displays), and G2/NYX series.
 - **Device catalog** — AK400/620/500/500S, MORPHEUS, CH360/CH560, and AK400/500/620/700 G2 NYX variants.
-- **GPU metrics** — temperature, utilization, frequency, and power on the web dashboard.
+- **GPU metrics** — temperature, utilization, frequency, and power on the dashboard.
 - **CPU power** — Intel RAPL readings via `intel-rapl` and `intel-rapl-mmio` sysfs (udev rules installed by `install.sh`).
 - **Dashboard UI** — redesigned layout with metric cards, separate CPU/GPU rows, and a live **DeepCool devices** panel.
 - **Tray About dialog** — app name, version, description, copyright, and license link.
@@ -50,7 +50,7 @@ Compared to [0.1.0](https://github.com/z7ealth/exkl/commit/aa31fe96ce2569ccdfe14
 Initial public release ([aa31fe9](https://github.com/z7ealth/exkl/commit/aa31fe96ce2569ccdfe14e034c68818767cdf431)).
 
 - AK500 DIGITAL HID control (temperature °C/°F and CPU utilization on the cooler screen).
-- Phoenix web dashboard with CPU metrics.
+- Embedded dashboard with CPU metrics.
 - wxWidgets system tray, embedded WebView window, and basic tray menu.
 - User systemd service, XDG autostart fallback, and udev rule for AK500 HID access.
 - Native NIFs for lm_sensors and hidapi.

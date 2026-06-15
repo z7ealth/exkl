@@ -3,7 +3,7 @@ defmodule Exkl.Bar do
   Gauge bar level for AK-series HID packets and the dashboard UI.
 
   The bar tracks the displayed metric: value ÷ 10, up to 10 segments on the
-  cooler (0–100% progress in the web UI). Values below 10 show an empty bar.
+  cooler (0–100% progress in the dashboard). Values below 10 show an empty bar.
   """
 
   @max_segments 10

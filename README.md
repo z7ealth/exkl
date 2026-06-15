@@ -8,7 +8,7 @@ Unofficial Linux control software for **DeepCool Digital** CPU coolers, case dis
 
 - Auto-discover connected DeepCool HID devices (vendor `3633`)
 - Live metrics on the cooler display: CPU temperature (°C / °F) and CPU utilization
-- Web dashboard with CPU/GPU temperature, load, frequency, and power
+- Dashboard (embedded tray window) with CPU/GPU temperature, load, frequency, and power
 - System tray icon with window, About dialog, and Exit
 - User systemd service + XDG autostart fallback
 - udev rules for HID access and Intel RAPL CPU power readings
@@ -70,7 +70,7 @@ flowchart LR
   WebView --> Endpoint
 ```
 
-`Exkl.Core` polls CPU/GPU sensors on a timer and publishes `{:cpu_metrics, %Exkl.AK{}}` on PubSub. HID workers subscribe and push encoded packets to the cooler display; the Phoenix LiveView dashboard subscribes to the same topic for the web UI.
+`Exkl.Core` polls CPU/GPU sensors on a timer and publishes `{:cpu_metrics, %Exkl.AK{}}` on PubSub. HID workers subscribe and push encoded packets to the cooler display; the dashboard subscribes to the same topic via the embedded WebView window.
 
 ## Supported devices
 
