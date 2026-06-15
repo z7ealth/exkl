@@ -8,7 +8,11 @@ defmodule Exkl.GpuSensors do
 
   @spec temp_celsius() :: float() | nil
   def temp_celsius do
-    nvidia_temp() || intel_sysfs_temp() || sensors_temp()
+    nvidia_temp() ||
+      intel_sysfs_temp() ||
+      intel_thermal_zone_temp() ||
+      sensors_cli_temp() ||
+      sensors_temp()
   end
 
   @spec utilization() :: float() | nil
@@ -31,6 +35,60 @@ defmodule Exkl.GpuSensors do
       temp when temp >= 0 -> temp
       _ -> nil
     end
+  end
+
+  defp sensors_cli_temp do
+    case System.find_executable("sensors") do
+      nil ->
+        nil
+
+      path ->
+        case System.cmd(path, [], stderr_to_stdout: true) do
+          {output, 0} -> parse_sensors_gpu_temp(output)
+          _ -> nil
+        end
+    end
+  end
+
+  defp parse_sensors_gpu_temp(output) do
+    output
+    |> String.split("\n\n", trim: true)
+    |> Enum.find_value(fn block ->
+      lines = String.split(block, "\n", trim: true)
+
+      case lines do
+        [adapter | rest] ->
+          if sensors_gpu_adapter?(adapter) do
+            parse_sensors_block_temp(rest)
+          end
+
+        _ ->
+          nil
+      end
+    end)
+  end
+
+  defp sensors_gpu_adapter?(adapter) do
+    a = String.downcase(adapter)
+
+    (String.contains?(a, "i915") or String.contains?(a, "xe")) and
+      not String.contains?(a, "coretemp")
+  end
+
+  defp parse_sensors_block_temp(lines) do
+    lines
+    |> Enum.find_value(fn line ->
+      case Regex.run(~r/^temp\d+:\s*\+?(-?\d+(?:\.\d+)?)/, line) do
+        [_, temp] ->
+          case Float.parse(temp) do
+            {value, _} when value >= 20.0 and value <= 120.0 -> value
+            _ -> nil
+          end
+
+        _ ->
+          nil
+      end
+    end)
   end
 
   defp amdgpu_util do
@@ -101,26 +159,84 @@ defmodule Exkl.GpuSensors do
   end
 
   defp intel_sysfs_temp do
-    intel_device_paths()
+    intel_temp_sources()
     |> Enum.find_value(&read_intel_hwmon_temp/1)
   end
 
-  defp read_intel_hwmon_temp(device_path) do
-    ["temp2_input", "temp1_input", "temp3_input"]
-    |> Enum.find_value(fn file ->
-      device_path
-      |> Path.join("hwmon/hwmon*/#{file}")
-      |> Path.wildcard()
-      |> Enum.find_value(&read_millidegree_temp/1)
+  defp intel_temp_sources do
+    (intel_device_hwmon_dirs() ++
+       intel_pci_hwmon_dirs() ++
+       intel_global_hwmon_dirs())
+    |> Enum.uniq()
+  end
+
+  defp intel_device_hwmon_dirs do
+    intel_device_paths()
+    |> Enum.flat_map(fn device_path ->
+      Path.wildcard(Path.join(device_path, "hwmon/hwmon*"))
     end)
+  end
+
+  defp intel_pci_hwmon_dirs do
+    Enum.flat_map(["i915", "xe"], fn driver ->
+      Path.wildcard("/sys/bus/pci/drivers/#{driver}/*/hwmon/hwmon*")
+    end)
+  end
+
+  defp intel_global_hwmon_dirs do
+    "/sys/class/hwmon/hwmon*/name"
+    |> Path.wildcard()
+    |> Enum.filter(fn path ->
+      case File.read(path) do
+        {:ok, name} ->
+          n = String.downcase(String.trim(name))
+
+          String.contains?(n, "i915") or String.contains?(n, "xe") or
+            (String.contains?(n, "intel") and String.contains?(n, "gpu"))
+
+        _ ->
+          false
+      end
+    end)
+    |> Enum.map(&Path.dirname/1)
+  end
+
+  defp intel_thermal_zone_temp do
+    "/sys/class/thermal/thermal_zone*/type"
+    |> Path.wildcard()
+    |> Enum.find_value(fn type_path ->
+      case File.read(type_path) do
+        {:ok, type} ->
+          t = String.downcase(String.trim(type))
+
+          if String.contains?(t, "gpu") or String.contains?(t, "gtt") do
+            type_path |> Path.dirname() |> Path.join("temp") |> read_millidegree_temp()
+          end
+
+        _ ->
+          nil
+      end
+    end)
+  end
+
+  defp read_intel_hwmon_temp(hwmon_dir) do
+    hwmon_dir
+    |> Path.join("temp*_input")
+    |> Path.wildcard()
+    |> Enum.sort()
+    |> Enum.find_value(&read_millidegree_temp/1)
   end
 
   defp read_millidegree_temp(path) do
     case File.read(path) do
       {:ok, content} ->
         case Integer.parse(String.trim(content)) do
-          {millidegrees, _} when millidegrees > 0 -> millidegrees / 1000.0
-          _ -> nil
+          {millidegrees, _} when millidegrees > 0 ->
+            celsius = millidegrees / 1000.0
+            if celsius >= 20.0 and celsius <= 120.0, do: celsius, else: nil
+
+          _ ->
+            nil
         end
 
       _ ->
@@ -150,6 +266,11 @@ defmodule Exkl.GpuSensors do
   end
 
   defp intel_freq_paths(device_path) do
+    root = [
+      Path.join(device_path, "gt_cur_freq_mhz"),
+      Path.join(device_path, "gt_act_freq_mhz")
+    ]
+
     legacy = [
       Path.join(device_path, "gt/gt0/rps/cur_freq"),
       Path.join(device_path, "gt/gt1/rps/cur_freq")
@@ -159,7 +280,7 @@ defmodule Exkl.GpuSensors do
       Path.wildcard(Path.join(device_path, "tile*/gt*/freq0/cur_freq")) ++
         Path.wildcard(Path.join(device_path, "tile*/gt*/freq0/act_freq"))
 
-    legacy ++ xe
+    root ++ legacy ++ xe
   end
 
   defp read_hwmon_freq(device_path) do

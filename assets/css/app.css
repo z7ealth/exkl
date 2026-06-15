@@ -112,19 +112,21 @@
 
 html {
   height: 100%;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   font-size: 110%;
 }
 
 .dashboard-shell {
   font-family: var(--font-display);
-  height: 100dvh;
-  overflow: hidden;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .dashboard-bg {
   isolation: isolate;
-  overflow: hidden;
+  min-height: 100dvh;
   background:
     radial-gradient(ellipse 70% 55% at 12% 18%, oklch(68% 0.22 292 / 0.18), transparent 55%),
     radial-gradient(ellipse 55% 45% at 88% 12%, oklch(77% 0.15 200 / 0.14), transparent 50%),
@@ -864,5 +866,43 @@ html {
 
   .mode-btn-label {
     display: none;
+  }
+}
+
+@media (max-width: 1400px), (max-height: 820px) {
+  html,
+  .dashboard-shell {
+    height: auto;
+    min-height: 100dvh;
+    overflow-y: auto;
+  }
+
+  .dashboard-bg {
+    height: auto;
+    min-height: 100dvh;
+  }
+
+  .dashboard-grid {
+    gap: 0.75rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .dashboard-frame {
+    padding-inline: 0.25rem;
+  }
+
+  .system-panel,
+  .metric-card,
+  .mode-panel {
+    padding: 0.8rem 0.85rem;
+  }
+
+  .metric-chart-wrap {
+    min-height: 3.75rem;
+  }
+
+  .system-logo {
+    width: 3.5rem;
+    height: 3.5rem;
   }
 }

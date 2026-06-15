@@ -31,7 +31,7 @@ defmodule ExklWeb.Layouts do
 
   def app(assigns) do
     ~H"""
-    <div class="dashboard-bg relative flex h-dvh flex-col overflow-hidden">
+    <div class="dashboard-bg relative flex min-h-dvh flex-col">
       <div class="dashboard-orb dashboard-orb-1" aria-hidden="true" />
       <div class="dashboard-orb dashboard-orb-2" aria-hidden="true" />
 
@@ -45,8 +45,8 @@ defmodule ExklWeb.Layouts do
         <.theme_toggle />
       </header>
 
-      <main class="relative z-10 flex flex-1 items-center justify-center overflow-y-auto px-4 py-4 sm:px-6">
-        <div class="dashboard-frame mx-auto w-full max-w-6xl">
+      <main class="relative z-10 flex flex-1 items-start justify-center overflow-y-auto px-3 py-3 pb-6 sm:items-center sm:px-6 sm:py-4">
+        <div class="dashboard-frame mx-auto w-full max-w-6xl pb-4">
           {render_slot(@inner_block)}
         </div>
       </main>
