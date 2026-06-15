@@ -40,6 +40,11 @@ defmodule Exkl.Desktop do
     {:noreply, state}
   end
 
+  def handle_event({:wx, 3, _, _, {:wxCommand, :command_menu_selected, _, _, _}}, state) do
+    Exkl.Desktop.About.show(state.frame)
+    {:noreply, state}
+  end
+
   def handle_event({:wx, 2, _, _, {:wxCommand, :command_menu_selected, _, _, _}}, state) do
     Logger.info("Shutting down EXKL.")
 
@@ -55,7 +60,7 @@ defmodule Exkl.Desktop do
     task_bar
   end
 
-  def terminate(:normal, state) do
+  def terminate(_reason, state) do
     :wxWindow.destroy(state.web_view)
     :wxTaskBarIcon.destroy(state.task_bar)
     :wxFrame.close(state.frame)
@@ -69,6 +74,8 @@ defmodule Exkl.Desktop do
   defp build_menu() do
     menu = :wxMenu.new()
     :wxMenu.append(menu, build_show_window_option())
+    :wxMenu.append(menu, build_about_option())
+    :wxMenu.appendSeparator(menu)
     :wxMenu.append(menu, build_exit_option())
 
     menu
@@ -76,6 +83,12 @@ defmodule Exkl.Desktop do
 
   defp build_show_window_option() do
     item = :wxMenuItem.new(id: 1, text: "Show window")
+
+    item
+  end
+
+  defp build_about_option() do
+    item = :wxMenuItem.new(id: 3, text: "About")
 
     item
   end
