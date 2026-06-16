@@ -61,6 +61,8 @@ nvidia-smi --query-gpu=utilization.gpu,temperature.gpu --format=csv,noheader,nou
 
 If that command fails or is missing, EXKL cannot read NVIDIA GPU metrics.
 
+If the **embedded dashboard window** is blank on NVIDIA systems, see [NVIDIA GPUs (blank WebView)](#nvidia-gpus-blank-webview) under Troubleshooting.
+
 ### Install packages by distro
 
 **Arch / Manjaro**
@@ -137,6 +139,113 @@ For local development on Wayland, prefix the command:
 ```bash
 GDK_BACKEND=x11 mix phx.server
 ```
+
+## Troubleshooting
+
+### Blank embedded dashboard (tray **Show window**)
+
+The tray window embeds the dashboard with **WebKitGTK** inside wxWidgets. If the window opens but stays dark or empty while EXKL is otherwise running, check the following.
+
+**1. Confirm the HTTP server is up**
+
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:4500/
+```
+
+A `200` response means the dashboard is serving; the problem is the embedded WebView, not EXKL core.
+
+**2. Open the dashboard in a normal browser (workaround)**
+
+While EXKL is running, open:
+
+```text
+http://localhost:4500
+```
+
+(or `http://127.0.0.1:4500`) in Firefox, Chromium, etc. You get the same live dashboard without the embedded WebView. HID control and the system tray keep working; only the in-app window is bypassed.
+
+**3. GNOME on Wayland**
+
+`install.sh` writes `GDK_BACKEND=x11` into `~/.config/exkl/env` for the user service. If you installed manually or upgraded from an older setup, confirm it is present (see [Wayland vs X11](#wayland-vs-x11-system-tray)), then restart:
+
+```bash
+systemctl --user restart exkl.service
+```
+
+**4. Missing desktop libraries**
+
+On Arch / Manjaro, install:
+
+```bash
+sudo pacman -S wxwidgets-gtk3 webkit2gtk-4.1
+```
+
+Verify linkage:
+
+```bash
+ldd /usr/lib/erlang/lib/wx-*/priv/wxe_driver.so | grep -E 'not found|webkit|webview'
+```
+
+There should be no `not found` lines.
+
+### NVIDIA GPUs (blank WebView)
+
+Systems with an **NVIDIA** GPU and the **proprietary driver** often hit a long-standing **WebKitGTK + NVIDIA** issue: WebKit starts GPU-accelerated compositing, fails to paint (blank window), while the same page loads fine in a normal browser.
+
+This is not specific to EXKL — it affects any app using WebKitGTK on Linux with NVIDIA (see [WebKit bug 180739](https://bugs.webkit.org/show_bug.cgi?id=180739)).
+
+**Fix:** add the following to `~/.config/exkl/env` (one line per variable):
+
+```bash
+WEBKIT_DISABLE_COMPOSITING_MODE=1
+```
+
+Then restart the service:
+
+```bash
+systemctl --user restart exkl.service
+```
+
+That disables WebKit’s hardware compositing path and uses software rendering instead. The dashboard may use slightly more CPU, but it should display correctly.
+
+**Lighter options** (try before `WEBKIT_DISABLE_COMPOSITING_MODE` if you prefer):
+
+```bash
+WEBKIT_DISABLE_DMABUF_RENDERER=1
+```
+
+On Wayland + NVIDIA, this sometimes helps without fully disabling compositing:
+
+```bash
+__NV_DISABLE_EXPLICIT_SYNC=1
+```
+
+**Example `~/.config/exkl/env` on NVIDIA + GNOME Wayland:**
+
+```bash
+PHX_SERVER=true
+SECRET_KEY_BASE=...
+PORT=4500
+GTK_USE_PORTAL=1
+GDK_BACKEND=x11
+WEBKIT_DISABLE_COMPOSITING_MODE=1
+```
+
+The `env` file is read **at service start** (runtime), not at compile time. After any edit, run `systemctl --user restart exkl.service`.
+
+**Quick test without reinstalling** (interactive shell):
+
+```bash
+GDK_BACKEND=x11 WEBKIT_DISABLE_COMPOSITING_MODE=1 erl
+```
+
+```elixir
+:wx.demo()
+```
+
+Open the WebView demo tab. If it renders under those variables but not otherwise, add them to `~/.config/exkl/env`.
+
+If the embedded window still fails after env changes, use the [browser fallback](#blank-embedded-dashboard-tray-show-window) at `http://localhost:4500`. GPU metrics on the dashboard still require a working `nvidia-smi` — see [GPU metrics](#gpu-metrics) above.
 
 ## Uninstall
 
