@@ -74,7 +74,9 @@ sudo pacman -S erlang elixir gcc make lm_sensors hidapi wxwidgets-gtk3 webkit2gt
 **Fedora**
 
 ```bash
-sudo dnf install erlang elixir gcc make lm_sensors-devel hidapi-devel wxGTK3-devel webkit2gtk4.1-devel
+sudo dnf install erlang elixir gcc make lm_sensors-devel hidapi-devel wxGTK-devel webkit2gtk4.1-devel
+
+sudo dnf install @development-tools
 ```
 
 **Debian / Ubuntu**

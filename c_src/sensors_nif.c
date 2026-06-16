@@ -1,5 +1,6 @@
 #include <erl_nif.h>
 #include <sensors/sensors.h>
+#include <stdio.h>
 #include <string.h>
 
 typedef int (*chip_filter_fn)(const char *chip_name);

@@ -1,5 +1,8 @@
 #include <erl_nif.h>
 #include <hidapi.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define MAX_STR 255
 #define MAX_UTF8_STR_LEN (MAX_STR * 4)
