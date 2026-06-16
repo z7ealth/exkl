@@ -15,12 +15,28 @@ Unofficial Linux control software for **DeepCool Digital** CPU coolers, case dis
 
 ## Dependencies
 
+### Erlang / Elixir (minimum versions)
+
+| | Minimum | Tested with |
+|---|---------|-------------|
+| **Erlang/OTP** | 28 | OTP 28 |
+| **Elixir** | 1.19 | 1.19.5 |
+
+Verify before building:
+
+```bash
+erl -noshell -eval 'io:format("OTP ~s~n", [erlang:system_info(otp_release)]), halt().'
+elixir --version
+```
+
+**Fedora:** the default `dnf install erlang elixir` packages are often **older than OTP 28 / Elixir 1.19**, which will fail to compile EXKL (Phoenix 1.8 and recent dependencies require a current toolchain). Install newer versions first, for example with [asdf](https://asdf-vm.com/) (`asdf-erlang`, `asdf-elixir`) or [kerl](https://github.com/kerl/kerl), then re-run `./install.sh`.
+
 ### Build & runtime (required)
 
 | Component | Purpose |
 |-----------|---------|
-| Erlang/OTP | BEAM runtime |
-| Elixir | Application build |
+| Erlang/OTP 28+ | BEAM runtime |
+| Elixir 1.19+ | Application build |
 | GCC, make | Native NIFs (`sensors_nif`, `hid_api_nif`) |
 | lm_sensors (`libsensors`) | CPU temperature via `sensors` |
 | hidapi (hidraw) | USB HID communication with the cooler |

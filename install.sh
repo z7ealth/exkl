@@ -48,11 +48,32 @@ has_header() {
   [ -f "/usr/include/$header" ] || [ -f "/usr/local/include/$header" ]
 }
 
+MIN_OTP=28
+MIN_ELIXIR_VERSION=1.19.0
+
+check_runtime_versions() {
+  local otp elixir_version
+
+  otp=$(erl -noshell -eval 'io:format("~s", [erlang:system_info(otp_release)]), halt().' 2>/dev/null || echo "0")
+
+  if ! [[ "$otp" =~ ^[0-9]+$ ]] || [ "$otp" -lt "$MIN_OTP" ]; then
+    die "Erlang/OTP ${MIN_OTP}+ required (found OTP ${otp}). On Fedora, dnf often ships an older erlang — install OTP ${MIN_OTP}+ via asdf-erlang or kerl."
+  fi
+
+  if ! elixir -e 'min = Version.parse!("'"$MIN_ELIXIR_VERSION"'"); cur = Version.parse!(System.version()); System.halt(if Version.compare(cur, min) == :lt, do: 1, else: 0)' >/dev/null 2>&1; then
+    elixir_version=$(elixir --short-version 2>/dev/null || echo "unknown")
+    die "Elixir ${MIN_ELIXIR_VERSION}+ required (found ${elixir_version}). On Fedora, dnf often ships an older elixir — install ${MIN_ELIXIR_VERSION}+ via asdf-elixir."
+  fi
+
+  log "Toolchain OK (OTP ${otp}, Elixir $(elixir --short-version))"
+}
+
 check_dependencies() {
   log "Checking build tools..."
 
-  command -v mix >/dev/null 2>&1 || die "mix not found. Install Elixir and Erlang/OTP."
-  command -v erl >/dev/null 2>&1 || die "erl not found. Install Erlang/OTP."
+  command -v mix >/dev/null 2>&1 || die "mix not found. Install Elixir ${MIN_ELIXIR_VERSION}+ and Erlang/OTP ${MIN_OTP}+."
+  command -v erl >/dev/null 2>&1 || die "erl not found. Install Erlang/OTP ${MIN_OTP}+."
+  check_runtime_versions
   command -v gcc >/dev/null 2>&1 || die "gcc not found."
   command -v make >/dev/null 2>&1 || die "make not found."
   command -v sudo >/dev/null 2>&1 || die "sudo not found."
