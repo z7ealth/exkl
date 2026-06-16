@@ -106,25 +106,36 @@ double get_cpu_temp_fahrenheit() {
 
 static ERL_NIF_TERM get_cpu_temp_celsius_nif(ErlNifEnv *env, int argc,
                                              const ERL_NIF_TERM argv[]) {
+  (void)argc;
+  (void)argv;
   return enif_make_double(env, get_cpu_temp_celsius());
 }
 
 static ERL_NIF_TERM get_cpu_temp_fahrenheit_nif(ErlNifEnv *env, int argc,
                                                 const ERL_NIF_TERM argv[]) {
+  (void)argc;
+  (void)argv;
   return enif_make_double(env, get_cpu_temp_fahrenheit());
 }
 
 static ERL_NIF_TERM get_gpu_temp_celsius_nif(ErlNifEnv *env, int argc,
                                              const ERL_NIF_TERM argv[]) {
+  (void)argc;
+  (void)argv;
   return enif_make_double(env, get_gpu_temp_celsius());
 }
 
 static ERL_NIF_TERM get_gpu_power_watts_nif(ErlNifEnv *env, int argc,
                                             const ERL_NIF_TERM argv[]) {
+  (void)argc;
+  (void)argv;
   return enif_make_double(env, get_gpu_power_watts());
 }
 
 static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info) {
+  (void)env;
+  (void)priv_data;
+  (void)info;
   if (sensors_init(NULL) != 0) {
     fprintf(stderr, "sensors_init failed\n");
     return -1;
@@ -132,12 +143,16 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info) {
   return 0;
 }
 
-static void unload(ErlNifEnv *env, void *priv_data) { sensors_cleanup(); }
+static void unload(ErlNifEnv *env, void *priv_data) {
+  (void)env;
+  (void)priv_data;
+  sensors_cleanup();
+}
 
 static ErlNifFunc nif_funcs[] = {
-    {"get_cpu_temp_celsius", 0, get_cpu_temp_celsius_nif},
-    {"get_cpu_temp_fahrenheit", 0, get_cpu_temp_fahrenheit_nif},
-    {"get_gpu_temp_celsius", 0, get_gpu_temp_celsius_nif},
-    {"get_gpu_power_watts", 0, get_gpu_power_watts_nif}};
+    {"get_cpu_temp_celsius", 0, get_cpu_temp_celsius_nif, 0},
+    {"get_cpu_temp_fahrenheit", 0, get_cpu_temp_fahrenheit_nif, 0},
+    {"get_gpu_temp_celsius", 0, get_gpu_temp_celsius_nif, 0},
+    {"get_gpu_power_watts", 0, get_gpu_power_watts_nif, 0}};
 
 ERL_NIF_INIT(Elixir.Exkl.SensorsNif, nif_funcs, load, NULL, NULL, unload)

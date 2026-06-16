@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
 
 #define MAX_STR 255
 #define MAX_UTF8_STR_LEN (MAX_STR * 4)
@@ -12,6 +13,7 @@ static ErlNifResourceType *HID_DEVICE_RESOURCE_TYPE = NULL;
 
 // Destructor for the hid_device resource
 static void hid_device_dtor(ErlNifEnv *env, void *obj) {
+  (void)env;
   hid_device *handle =
       *(hid_device **)obj; // Dereference the pointer to hid_device*
   if (handle) {
@@ -20,8 +22,10 @@ static void hid_device_dtor(ErlNifEnv *env, void *obj) {
 }
 
 static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info) {
+  (void)priv_data;
+  (void)info;
   if (hid_init() != 0) {
-    fprintf(stderr, "sensors_init failed\n");
+    fprintf(stderr, "hid_init failed\n");
     return 1;
   }
 
@@ -35,7 +39,11 @@ static int load(ErlNifEnv *env, void **priv_data, ERL_NIF_TERM info) {
   return 0;
 }
 
-static void unload(ErlNifEnv *env, void *priv_data) { hid_exit(); }
+static void unload(ErlNifEnv *env, void *priv_data) {
+  (void)env;
+  (void)priv_data;
+  hid_exit();
+}
 
 static ERL_NIF_TERM open_nif(ErlNifEnv *env, int argc,
                              const ERL_NIF_TERM argv[]) {
@@ -152,10 +160,10 @@ static ERL_NIF_TERM enumerate_nif(ErlNifEnv *env, int argc,
 
 // --- NIF Exports ---
 static ErlNifFunc nif_funcs[] = {
-    {"open", 2, open_nif},
-    {"close", 1, close_nif},
-    {"write", 2, write_nif},
-    {"enumerate", 1, enumerate_nif},
+    {"open", 2, open_nif, 0},
+    {"close", 1, close_nif, 0},
+    {"write", 2, write_nif, 0},
+    {"enumerate", 1, enumerate_nif, 0},
 };
 
 ERL_NIF_INIT(Elixir.Exkl.HidApiNif, nif_funcs, load, NULL, NULL, unload)

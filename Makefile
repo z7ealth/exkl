@@ -31,7 +31,8 @@ ifeq ($(strip $(SENSORS_LIBS)),)
 SENSORS_LIBS := -lsensors
 endif
 
-CFLAGS := -fPIC -shared -Wall -Wextra -O2
+CFLAGS := -fPIC -shared -Wall -Wextra -O2 -std=c11 \
+	-Werror=implicit-function-declaration -Werror=missing-field-initializers
 
 .PHONY: all clean deps-check
 
