@@ -30,7 +30,9 @@ defmodule Exkl.HidDevices.ChSeries do
           {:cpu_util, cpu_usage, :gpu_util, gpu_usage}
 
         :cpu_temp_f ->
-          {:cpu_temp_f, metrics.metrics_value, :gpu_temp_f, metrics.gpu_temp_c || 0.0}
+          gpu_c = metrics.gpu_temp_c || 0.0
+
+          {:cpu_temp_f, metrics.metrics_value, :gpu_temp_f, celsius_to_fahrenheit(gpu_c)}
 
         _ ->
           {:cpu_temp_c, metrics.metrics_value, :gpu_temp_c, metrics.gpu_temp_c || 0.0}
@@ -103,4 +105,6 @@ defmodule Exkl.HidDevices.ChSeries do
     |> List.replace_at(offset + 1, d1)
     |> List.replace_at(offset + 2, d2)
   end
+
+  defp celsius_to_fahrenheit(celsius), do: celsius * 9.0 / 5.0 + 32.0
 end
