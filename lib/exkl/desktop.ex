@@ -2,7 +2,6 @@ defmodule Exkl.Desktop do
   @behaviour :wx_object
 
   @title "EXKL"
-  @icon_path Path.join(:code.priv_dir(:exkl), "static/images/exkl_logo.png")
   @aspect_w 16
   @aspect_h 9
   @frame_margin 96
@@ -20,9 +19,10 @@ defmodule Exkl.Desktop do
 
     min_size = min_window_size()
     frame = :wxFrame.new(wx, -1, @title, size: min_size)
-    icon = build_icon()
+    icon = load_icon("icon-dark.png") || :wxIcon.new()
+    tray_icon = load_icon("icon-light.png") || icon
 
-    task_bar = build_taskbar(icon)
+    task_bar = build_taskbar(tray_icon)
     web_view = build_webview(frame)
 
     :wxWindow.setName(frame, "exkl")
@@ -111,12 +111,19 @@ defmodule Exkl.Desktop do
     item
   end
 
-  defp build_icon do
-    if File.exists?(@icon_path) do
-      :wxIcon.new(@icon_path)
+  defp load_icon(name) do
+    path = priv_icon(name)
+
+    if File.exists?(path) do
+      :wxIcon.new(path)
     else
-      :wxIcon.new()
+      Logger.warning("Icon not found: #{path}")
+      nil
     end
+  end
+
+  defp priv_icon(name) do
+    Path.join(:code.priv_dir(:exkl), "static/images/icon/#{name}")
   end
 
   defp show_frame(frame) do

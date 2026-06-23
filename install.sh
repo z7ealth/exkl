@@ -163,7 +163,7 @@ install -d "$EXKL_DIR"
 cp -a "_build/$ENV/rel/$APP_NAME/." "$EXKL_DIR/"
 
 install -d "$(dirname "$ICON_PATH")"
-cp "priv/static/images/exkl_logo.png" "$ICON_PATH"
+cp "priv/static/images/icon/icon-light.png" "$ICON_PATH"
 chmod +x "$LAUNCH_PATH"
 
 log "Generating SECRET_KEY_BASE..."

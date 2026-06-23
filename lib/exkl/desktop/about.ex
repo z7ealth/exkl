@@ -1,7 +1,6 @@
 defmodule Exkl.Desktop.About do
   @moduledoc false
 
-  @icon_path Path.join(:code.priv_dir(:exkl), "static/images/exkl_logo.png")
   @license_url "https://github.com/z7ealth/exkl/blob/main/LICENSE"
 
   @wx_horizontal 4
@@ -27,7 +26,7 @@ defmodule Exkl.Desktop.About do
 
   defp build_dialog(parent) do
     dialog = :wxDialog.new(parent, -1, "About")
-    :wxDialog.setIcon(dialog, :wxIcon.new(@icon_path))
+    :wxDialog.setIcon(dialog, :wxIcon.new(icon_path()))
 
     panel = :wxPanel.new(dialog)
     logo = scaled_logo_bitmap()
@@ -98,11 +97,15 @@ defmodule Exkl.Desktop.About do
   end
 
   defp scaled_logo_bitmap do
-    @icon_path
+    icon_path()
     |> :wxBitmap.new()
     |> :wxBitmap.convertToImage()
     |> :wxImage.scale(50, 50)
     |> :wxBitmap.new()
+  end
+
+  defp icon_path do
+    Path.join(:code.priv_dir(:exkl), "static/images/icon/icon-dark.png")
   end
 
   defp version, do: Application.spec(:exkl, :vsn) |> to_string()

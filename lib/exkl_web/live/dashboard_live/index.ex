@@ -47,6 +47,8 @@ defmodule ExklWeb.DashboardLive.Index do
       |> assign(:gpu_freq, format_freq(assigns.ak.gpu_freq_mhz))
       |> assign(:cpu_power, format_power(assigns.ak.cpu_power_w))
       |> assign(:gpu_power, format_power(assigns.ak.gpu_power_w))
+      |> assign(:icon_temp, icon_temp(assigns.ak))
+      |> assign(:icon_unit, icon_unit(assigns.ak.mode))
       |> assign(:screen_on, assigns.screen_on)
 
     ~H"""
@@ -54,13 +56,22 @@ defmodule ExklWeb.DashboardLive.Index do
       <div class="dashboard-grid">
         <section class="dc-card system-panel">
           <div class="system-panel-header">
-            <div class="logo-glow rounded-2xl p-1">
-              <img
-                src={~p"/images/exkl_logo.png"}
-                alt="EXKL"
-                class="system-logo rounded-xl object-cover"
-              />
-            </div>
+            <.exkl_icon
+              id="exkl-icon-dark"
+              temp={@icon_temp}
+              unit={@icon_unit}
+              size={56}
+              theme={:dark}
+              class="system-icon system-icon-dark"
+            />
+            <.exkl_icon
+              id="exkl-icon-light"
+              temp={@icon_temp}
+              unit={@icon_unit}
+              size={56}
+              theme={:light}
+              class="system-icon system-icon-light"
+            />
             <p class="font-display text-base font-semibold tracking-tight text-base-content sm:text-lg">
               EXKL
             </p>
@@ -310,6 +321,15 @@ defmodule ExklWeb.DashboardLive.Index do
 
     %{min: min, avg: avg, max: max}
   end
+
+  defp icon_temp(%{mode: :start}), do: nil
+  defp icon_temp(%{metrics_value: value}) when value < 0, do: nil
+  defp icon_temp(%{metrics_value: value}), do: value
+
+  defp icon_unit(:cpu_temp_c), do: "°C"
+  defp icon_unit(:cpu_temp_f), do: "°F"
+  defp icon_unit(:cpu_util), do: "%"
+  defp icon_unit(_), do: "°C"
 
   defp system_facts(facts) do
     [

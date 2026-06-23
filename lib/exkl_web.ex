@@ -17,7 +17,8 @@ defmodule ExklWeb do
   those modules here.
   """
 
-  def static_paths, do: ~w(assets fonts images favicon.ico robots.txt)
+  def static_paths,
+    do: ~w(assets fonts images favicon.ico favicon.svg favicon-16.png favicon-32.png apple-touch-icon.png android-chrome-192.png android-chrome-512.png site.webmanifest robots.txt)
 
   def router do
     quote do
@@ -81,6 +82,7 @@ defmodule ExklWeb do
       import Phoenix.HTML
       # Core UI components
       import ExklWeb.CoreComponents
+      import ExklWeb.Components.Icon
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS

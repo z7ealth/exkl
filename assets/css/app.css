@@ -187,6 +187,24 @@ html {
   gap: 0.4rem;
 }
 
+.system-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  flex-shrink: 0;
+}
+
+.system-icon-light {
+  display: none;
+}
+
+[data-theme="light"] .system-icon-dark {
+  display: none;
+}
+
+[data-theme="light"] .system-icon-light {
+  display: block;
+}
+
 .system-logo {
   width: 4.5rem;
   height: 4.5rem;
@@ -1009,8 +1027,9 @@ html {
     min-height: 3.75rem;
   }
 
+  .system-icon,
   .system-logo {
-    width: 3.5rem;
-    height: 3.5rem;
+    width: 3rem;
+    height: 3rem;
   }
 }

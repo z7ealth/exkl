@@ -1,4 +1,4 @@
-# ![EXKL Logo](./priv/static/images/exkl_logo.png) EXKL
+# ![EXKL](./priv/static/images/icon/icon-dark.png) EXKL
 
 Unofficial Linux app for **DeepCool Digital** coolers and case displays (USB vendor `3633`). Drives the HID screen, shows CPU/GPU metrics in the system tray, and runs as a user service.
 

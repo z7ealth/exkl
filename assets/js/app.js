@@ -27,6 +27,23 @@ import topbar from "../vendor/topbar"
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 
 const Hooks = {
+  ExklIcon: {
+    mounted() {
+      this.sync()
+    },
+    updated() {
+      this.sync()
+    },
+    sync() {
+      const label = this.el.dataset.label
+      const unit = this.el.dataset.unit
+      const valueEl = this.el.querySelector("[data-exkl-value]")
+      const unitEl = this.el.querySelector("[data-exkl-unit]")
+
+      if (valueEl && label != null) valueEl.textContent = label
+      if (unitEl && unit != null) unitEl.textContent = unit
+    }
+  },
   MetricPulse: {
     updated() {
       this.el.classList.remove("metric-pulse")
