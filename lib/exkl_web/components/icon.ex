@@ -60,7 +60,7 @@ defmodule ExklWeb.Components.Icon do
           stroke-linejoin="round"
           stroke-linecap="round"
         />
-        <g :if={@show_digits} font-family="'DejaVu Sans Mono', ui-monospace, monospace" font-weight="700">
+        <g :if={@show_digits} font-family="'Bitter', ui-serif, serif" font-weight="700">
           <text x="100" y="138" font-size="42" fill={@digit_color} text-anchor="middle" data-exkl-value>
             {@label}
           </text>
