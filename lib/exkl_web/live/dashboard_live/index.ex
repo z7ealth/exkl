@@ -52,7 +52,7 @@ defmodule ExklWeb.DashboardLive.Index do
     ~H"""
     <Layouts.app flash={@flash}>
       <div class="dashboard-grid">
-        <section class="glass-panel system-panel">
+        <section class="dc-card system-panel">
           <div class="system-panel-header">
             <div class="logo-glow rounded-2xl p-1">
               <img
@@ -165,7 +165,7 @@ defmodule ExklWeb.DashboardLive.Index do
           />
         </div>
 
-        <section class="glass-panel mode-panel">
+        <section class="dc-card mode-panel">
             <p class="mode-label">Display mode</p>
             <div class="mode-selector">
               <button

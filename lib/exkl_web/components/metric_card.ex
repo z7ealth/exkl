@@ -22,64 +22,70 @@ defmodule ExklWeb.MetricCard do
   attr :power, :string, default: nil
 
   @segments 24
+  @gauge_radius 46
+  @gauge_length :math.pi() * @gauge_radius
 
   def metric_card(assigns) do
     assigns =
       assigns
       |> assign(:segments, @segments)
+      |> assign(:gauge_length, @gauge_length)
+      |> assign(:gauge_offset, gauge_offset(assigns.progress, @gauge_length))
+      |> assign(:gauge_label, gauge_label(assigns.unit))
       |> assign(:active_segments, active_segments(assigns.progress))
       |> assign(:chart_points, chart_points(assigns.history, assigns.chart_min, assigns.chart_max))
       |> assign(:chart_area, chart_area(assigns.history, assigns.chart_min, assigns.chart_max))
       |> assign(:bars, bar_heights(assigns.history, assigns.chart_min, assigns.chart_max))
 
     ~H"""
-    <section class={["glass-panel metric-card", "metric-card-#{@tone}"]}>
+    <section class={["dc-card metric-card", "metric-card-#{@tone}"]}>
       <div class="metric-card-header">
-        <div class="min-w-0">
-          <p class="metric-label">{@title}</p>
-          <p class="metric-subtitle">{@subtitle}</p>
+        <div class="metric-card-header-left">
+          <div class="metric-icon-badge">
+            <.icon name={@icon} class="size-5 text-primary" />
+          </div>
+          <p class="metric-label">{short_title(@title)}</p>
         </div>
-        <div class={["metric-icon-badge", @tone == "accent" && "metric-icon-badge-accent"]}>
-          <.icon
-            name={@icon}
-            class={"size-5 sm:size-6 #{if(@tone == "accent", do: "text-accent", else: "text-primary")}"}
-          />
-        </div>
+        <p class="metric-subtitle">{@subtitle}</p>
       </div>
 
-      <div class="metric-card-value-row">
-        <div class="metric-card-main">
-          <div class="metric-card-value">
+      <div class="metric-card-body">
+        <div class="dc-gauge" aria-hidden={!@available?}>
+          <svg viewBox="0 0 120 72" class="dc-gauge-svg">
+            <path
+              class="dc-gauge-track"
+              d="M 14 68 A 46 46 0 0 1 106 68"
+              fill="none"
+              pathLength={@gauge_length}
+            />
+            <path
+              class="dc-gauge-fill"
+              d="M 14 68 A 46 46 0 0 1 106 68"
+              fill="none"
+              pathLength={@gauge_length}
+              style={"stroke-dasharray: #{@gauge_length}; stroke-dashoffset: #{@gauge_offset}"}
+            />
+          </svg>
+          <div class="dc-gauge-center">
+            <span class="dc-gauge-label">{@gauge_label}</span>
             <span
-              class={["metric-number", !@available? && "metric-unavailable"]}
+              class={["dc-gauge-value", !@available? && "metric-unavailable"]}
               phx-hook="MetricPulse"
               id={@value_id}
             >
-              {@value}
-            </span>
-            <span :if={@available?} class="metric-unit">{@unit}</span>
-          </div>
-          <div :if={@freq || @power} class="metric-meta">
-            <span :if={@freq} class="metric-meta-item">
-              <.icon name="hero-signal" class="metric-meta-icon" />
-              {@freq}
-            </span>
-            <span :if={@power} class="metric-meta-item">
-              <.icon name="hero-bolt" class="metric-meta-icon" />
-              {@power}
+              {@value}<span :if={@available? && @unit == "%"}>%</span><span :if={@available? && @unit != "%"} class="dc-gauge-unit">{@unit}</span>
             </span>
           </div>
         </div>
 
-        <div class="metric-meter" aria-hidden="true">
-          <div class="metric-meter-track">
-            <div class="metric-meter-fill" style={"width: #{@progress}%"} />
+        <div class="dc-stat-list">
+          <div :if={@freq} class="dc-stat">
+            <span class="dc-stat-value">{@freq}</span>
+            <span class="dc-stat-label">Clock Speed</span>
           </div>
-          <div class="metric-segments">
-            <span
-              :for={i <- 1..@segments}
-              class={["metric-seg", i <= @active_segments && "metric-seg-on"]}
-            />
+          <div :if={@power} class="dc-stat">
+            <span class="dc-stat-value">{@power}</span>
+            <span class="dc-stat-label">Power</span>
           </div>
         </div>
       </div>
@@ -92,7 +98,7 @@ defmodule ExklWeb.MetricCard do
               <stop offset="100%" stop-color="var(--chart-color)" />
             </linearGradient>
             <linearGradient id={"chart-fill-#{@chart_id}"} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="var(--chart-color)" stop-opacity="0.35" />
+              <stop offset="0%" stop-color="var(--chart-color)" stop-opacity="0.25" />
               <stop offset="100%" stop-color="var(--chart-color)" stop-opacity="0" />
             </linearGradient>
           </defs>
@@ -130,6 +136,21 @@ defmodule ExklWeb.MetricCard do
       </div>
     </section>
     """
+  end
+
+  defp short_title("CPU Temperature"), do: "CPU"
+  defp short_title("CPU Load"), do: "CPU"
+  defp short_title("GPU Temperature"), do: "GPU"
+  defp short_title("GPU Load"), do: "GPU"
+  defp short_title(title), do: title
+
+  defp gauge_label("%"), do: "Load"
+  defp gauge_label("°C"), do: "Temperature"
+  defp gauge_label("°F"), do: "Temperature"
+  defp gauge_label(_), do: "Metric"
+
+  defp gauge_offset(progress, length) do
+    length * (1 - max(0, min(progress, 100)) / 100)
   end
 
   defp active_segments(progress) do

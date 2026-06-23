@@ -32,9 +32,6 @@ defmodule ExklWeb.Layouts do
   def app(assigns) do
     ~H"""
     <div class="dashboard-bg relative flex h-dvh flex-col overflow-hidden">
-      <div class="dashboard-orb dashboard-orb-1" aria-hidden="true" />
-      <div class="dashboard-orb dashboard-orb-2" aria-hidden="true" />
-
       <header class="dashboard-header relative z-10 flex shrink-0 items-center justify-between px-4 py-3 sm:px-6">
         <div class="flex items-center gap-3">
           <span class="live-dot" aria-hidden="true" />
@@ -106,7 +103,7 @@ defmodule ExklWeb.Layouts do
   """
   def theme_toggle(assigns) do
     ~H"""
-    <div class="glass-panel relative flex flex-row items-center rounded-full p-0.5">
+    <div class="dc-card dc-theme-toggle relative flex flex-row items-center rounded-full p-0.5">
       <div class="absolute w-1/3 h-[calc(100%-4px)] rounded-full bg-base-100/80 shadow-sm left-0.5 top-0.5 [[data-theme=light]_&]:left-[calc(33.33%+2px)] [[data-theme=dark]_&]:left-[calc(66.66%+2px)] transition-[left] duration-300 ease-out" />
 
       <button
