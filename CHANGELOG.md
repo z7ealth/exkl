@@ -4,6 +4,28 @@ All notable changes to EXKL are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+
+- **Live dashboard icon** — `ExklWeb.Components.Icon` droplet with digits synced to the active metric.
+- **Screen on/off toggle** — per connected device on the dashboard; G2 off-packet support.
+- **Favicon set** — SVG/PNG favicons and `site.webmanifest` for the Phoenix app.
+
+### Changed
+
+- **Branding** — droplet app icon (purple→teal gradient, `41°C` readout); assets under `priv/static/images/icon/`.
+- **Dashboard UI** — DeepCreative-inspired layout (teal accent, card-based metrics).
+- **Tray icon** — light tile (`icon-light.png`); window/About use dark tile (`icon-dark.png`).
+- **Tray Exit** — closes GUI only; Core, Display, and endpoint keep running (`Exkl.GUI` is `restart: :temporary`).
+- **G2/NYX encoding** — 32-bit float temps, watts not milliwatts, °F/unit and util-mode fixes.
+
+### Fixed
+
+- **Release icon paths** — wx icons resolved at runtime via `:code.priv_dir/1` (not compile-time paths into `_build/`).
+- **Live icon sync** — stable SVG gradient IDs and `ExklIcon` hook for WebView digit updates.
+- **HID NIF `close`** — calls `hid_close()` so USB handles are actually released.
+
 ## [1.0.0] - 2026-06-15
 
 Compared to [0.1.0](https://github.com/z7ealth/exkl/commit/aa31fe96ce2569ccdfe14e034c68818767cdf431).

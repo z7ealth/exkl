@@ -9,12 +9,23 @@ mix setup
 GDK_BACKEND=x11 mix phx.server   # GNOME Wayland
 ```
 
-Open **Show window** from the system tray. NIFs rebuild on `mix compile`.
+Open **Show window** from the system tray, or http://localhost:4500 in a browser. NIFs rebuild on `mix compile`.
 
 ```bash
 make deps-check
 make all
+mix assets.build    # after CSS/JS changes
 ```
+
+## Production-like install
+
+```bash
+MIX_ENV=prod mix release
+./install.sh
+systemctl --user restart exkl.service
+```
+
+Re-run `./install.sh` after release or icon changes so `~/.config/exkl/` picks up the new `priv/` tree and launcher icon.
 
 ## Observer
 
@@ -25,6 +36,15 @@ make all
 ```elixir
 :observer.start()
 ```
+
+## UI and assets
+
+- Dashboard: `lib/exkl_web/live/dashboard_live/index.ex`
+- Live droplet icon: `lib/exkl_web/components/icon.ex` (`<.exkl_icon temp={…} unit={…} />`)
+- Styles: `assets/css/app.css` (Tailwind v4 + daisyUI themes)
+- App icons: `priv/static/images/icon/` — PNGs can be regenerated from the icon pack’s `render.py`
+
+Tray **Exit** during dev closes the wx UI only; restart the app or run `systemctl --user restart exkl.service` to get the tray back.
 
 ## Adding a new device
 

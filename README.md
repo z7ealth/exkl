@@ -42,6 +42,9 @@ cd exkl
 | Logs | `journalctl --user -u exkl.service -f` |
 | Status | `systemctl --user status exkl.service` |
 | Config / secrets | `~/.config/exkl/env` |
+| Restore tray after Exit | `systemctl --user restart exkl.service` |
+
+Tray **Exit** closes the window and tray icon only. Metrics, HID control, and the dashboard at `:4500` keep running until you stop the service.
 
 Issues? See [docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md).
 
