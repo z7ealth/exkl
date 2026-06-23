@@ -16,6 +16,18 @@ defmodule Exkl.HidDevice.Impl do
     |> then(& &1.startup())
   end
 
+  def blank_payload(device) do
+    device
+    |> encoder()
+    |> then(& &1.blank())
+  end
+
+  def off_payload(device) do
+    device
+    |> encoder()
+    |> then(& &1.off())
+  end
+
   def encode_metrics(device, metrics) do
     device
     |> encoder()

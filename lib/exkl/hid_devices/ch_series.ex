@@ -20,6 +20,12 @@ defmodule Exkl.HidDevices.ChSeries do
     |> :binary.list_to_bin()
   end
 
+  @spec blank() :: binary()
+  def blank, do: encode_metrics(%Exkl.AK{mode: :cpu_temp_c, metrics_value: 0.0, cpu_util: 0.0, gpu_util: 0.0})
+
+  @spec off() :: binary()
+  def off, do: blank()
+
   defp encode_metrics(%Exkl.AK{} = metrics) do
     cpu_usage = metrics.cpu_util || 0.0
     gpu_usage = metrics.gpu_util || 0.0

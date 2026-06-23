@@ -6,9 +6,11 @@ defmodule ExklWeb.DashboardLive.Index do
 
   import ExklWeb.MetricCard
 
+  alias Exkl.Display.Settings
   alias Exkl.HidDevice.Discovery
 
   @pubsub_topic "cpu_metrics"
+  @display_settings_topic "display_settings"
   @history_size 36
   @device_refresh_ms 10_000
 
@@ -45,6 +47,7 @@ defmodule ExklWeb.DashboardLive.Index do
       |> assign(:gpu_freq, format_freq(assigns.ak.gpu_freq_mhz))
       |> assign(:cpu_power, format_power(assigns.ak.cpu_power_w))
       |> assign(:gpu_power, format_power(assigns.ak.gpu_power_w))
+      |> assign(:screen_on, assigns.screen_on)
 
     ~H"""
     <Layouts.app flash={@flash}>
@@ -84,9 +87,31 @@ defmodule ExklWeb.DashboardLive.Index do
 
             <ul :if={@devices != []} class="device-list">
               <li :for={device <- @devices} class="device-item">
-                <div class="device-item-header">
-                  <span class={["device-status", device_status_class(device.status)]} />
-                  <span class="device-name">{device.name}</span>
+                <div class="device-item-top">
+                  <div class="device-item-header">
+                    <span class={["device-status", device_status_class(device.status)]} />
+                    <span class="device-name">{device.name}</span>
+                  </div>
+
+                  <button
+                    :if={device.status == :connected}
+                    type="button"
+                    phx-click="toggle_screen"
+                    class={["screen-toggle", "device-screen-toggle", !@screen_on && "screen-toggle-off"]}
+                    aria-pressed={@screen_on}
+                    aria-label={if(@screen_on, do: "Turn cooler screen off", else: "Turn cooler screen on")}
+                    title={if(@screen_on, do: "Screen on — sending live metrics", else: "Screen off — display powered down")}
+                  >
+                    <span class="screen-toggle-track" aria-hidden="true">
+                      <span class="screen-toggle-thumb">
+                        <.icon
+                          name={if(@screen_on, do: "hero-signal", else: "hero-pause")}
+                          class="size-2.5"
+                        />
+                      </span>
+                    </span>
+                    <span class="screen-toggle-label">{if(@screen_on, do: "On", else: "Off")}</span>
+                  </button>
                 </div>
                 <div class="device-item-meta">
                   <span class="device-usb-id">{device.usb_id}</span>
@@ -165,6 +190,7 @@ defmodule ExklWeb.DashboardLive.Index do
   @impl true
   def mount(_params, _session, socket) do
     PubSub.subscribe(Exkl.PubSub, @pubsub_topic)
+    PubSub.subscribe(Exkl.PubSub, @display_settings_topic)
 
     if connected?(socket) do
       :timer.send_interval(@device_refresh_ms, self(), :refresh_devices)
@@ -179,6 +205,7 @@ defmodule ExklWeb.DashboardLive.Index do
      |> assign(:cpu_history, [])
      |> assign(:gpu_history, [])
      |> assign(:devices, Discovery.list())
+     |> assign(:screen_on, Settings.screen_on?())
      |> assign(:version, app_version())
      |> assign(:facts, %{
        os: "#{os_type} - #{os_name}",
@@ -187,6 +214,13 @@ defmodule ExklWeb.DashboardLive.Index do
        cpu_name: Exkl.HardwareInfo.cpu_name(),
        gpu_name: Exkl.HardwareInfo.gpu_name()
      })}
+  end
+
+  @impl true
+  def handle_event("toggle_screen", _params, socket) do
+    on = not socket.assigns.screen_on
+    Settings.set_screen_on(on)
+    {:noreply, assign(socket, :screen_on, on)}
   end
 
   @impl true
@@ -205,6 +239,11 @@ defmodule ExklWeb.DashboardLive.Index do
   def handle_event("change_mode", %{"mode" => "cpu_util"}, socket) do
     Exkl.Core.change_mode(:cpu_util)
     {:noreply, reset_histories(socket)}
+  end
+
+  @impl true
+  def handle_info({:screen_on, on}, socket) do
+    {:noreply, assign(socket, :screen_on, on)}
   end
 
   @impl true

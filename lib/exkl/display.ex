@@ -12,7 +12,6 @@ defmodule Exkl.Display do
   require Logger
 
   alias Exkl.Display.Worker
-  alias Exkl.HidApiNif
   alias Exkl.HidDevice
   alias Exkl.HidDevice.Discovery
 
@@ -40,28 +39,16 @@ defmodule Exkl.Display do
   defp start_worker({device, product_id}) do
     vendor_id = HidDevice.vendor_id(device)
 
-    case open_handle(vendor_id, product_id) do
-      {:ok, handle} ->
-        Logger.info("Connected HID display: #{HidDevice.name(device)} (#{hex(vendor_id)}:#{hex(product_id)})")
+    Logger.info(
+      "Starting HID display worker for #{HidDevice.name(device)} (#{hex(vendor_id)}:#{hex(product_id)})"
+    )
 
-        [
-          %{
-            id: {device.__struct__, product_id},
-            start: {Worker, :start_link, [{handle, device}]}
-          }
-        ]
-
-      :error ->
-        Logger.warning("Failed to open HID display: #{HidDevice.name(device)}")
-        []
-    end
-  end
-
-  defp open_handle(vendor_id, product_id) do
-    case HidApiNif.open(vendor_id, product_id) do
-      handle when is_integer(handle) -> :error
-      handle -> {:ok, handle}
-    end
+    [
+      %{
+        id: {device.__struct__, product_id},
+        start: {Worker, :start_link, [{device, vendor_id, product_id}]}
+      }
+    ]
   end
 
   defp hex(value), do: String.pad_leading(Integer.to_string(value, 16), 4, "0")

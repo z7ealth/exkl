@@ -13,13 +13,10 @@ defmodule Exkl.Application do
       ExklWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:exkl, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Exkl.PubSub},
-      # Start a worker by calling: Exkl.Worker.start_link(arg)
-      # {Exkl.Worker, arg},
-      # Start to serve requests, typically the last entry
       ExklWeb.Endpoint,
       {Exkl.Core, %Exkl.AK{}},
       Exkl.Display,
-      Exkl.GUI
+      {Exkl.GUI, restart: :temporary}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

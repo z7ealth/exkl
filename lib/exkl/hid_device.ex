@@ -15,6 +15,12 @@ defprotocol Exkl.HidDevice do
   @doc "Payload sent once when the device is connected."
   def startup_payload(device)
 
+  @doc "Payload sent to power down the HID display when the screen is turned off."
+  def off_payload(device)
+
+  @doc "Payload sent to clear the HID display when the screen is turned off."
+  def blank_payload(device)
+
   @doc "Encodes the latest metrics snapshot for the HID display."
   def encode_metrics(device, metrics)
 end

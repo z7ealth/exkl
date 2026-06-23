@@ -53,8 +53,7 @@ defmodule Exkl.Desktop do
   end
 
   def handle_event({:wx, 2, _, _, {:wxCommand, :command_menu_selected, _, _, _}}, state) do
-    Logger.info("Shutting down EXKL.")
-
+    Logger.info("Closing EXKL window.")
     {:stop, :normal, state}
   end
 
@@ -68,14 +67,20 @@ defmodule Exkl.Desktop do
   end
 
   def terminate(_reason, state) do
-    :wxWindow.destroy(state.web_view)
-    :wxTaskBarIcon.destroy(state.task_bar)
-    :wxFrame.close(state.frame)
-    :wxFrame.destroy(state.frame)
-
-    :wx.destroy()
-
+    destroy_wx(state)
     :ok
+  end
+
+  defp destroy_wx(state) do
+    :wxWindow.destroy(state.web_view)
+    :wxTaskBarIcon.removeIcon(state.task_bar)
+    :wxTaskBarIcon.destroy(state.task_bar)
+    :wxFrame.destroy(state.frame)
+    :wx.destroy()
+  rescue
+    _ -> :ok
+  catch
+    :exit, _ -> :ok
   end
 
   defp build_menu() do

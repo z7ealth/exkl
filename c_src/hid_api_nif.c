@@ -82,16 +82,21 @@ static ERL_NIF_TERM open_nif(ErlNifEnv *env, int argc,
 static ERL_NIF_TERM close_nif(ErlNifEnv *env, int argc,
                               const ERL_NIF_TERM argv[]) {
   hid_device **res_handle;
+  hid_device *handle;
+
   if (argc != 1 ||
       !enif_get_resource(env, argv[0], HID_DEVICE_RESOURCE_TYPE,
-                         (void **)&res_handle) ||
-      *res_handle == NULL) {
+                         (void **)&res_handle)) {
     return enif_make_badarg(env);
   }
-  // Set the pointer in the resource to NULL.
-  // This marks it as "closed" from the NIF's perspective and prevents
-  // double-free if `close` is called multiple times. The actual hid_close will
-  // happen when the resource is finally garbage collected.
+
+  handle = *res_handle;
+
+  if (handle == NULL) {
+    return enif_make_int(env, 0);
+  }
+
+  hid_close(handle);
   *res_handle = NULL;
   return enif_make_int(env, 0);
 }

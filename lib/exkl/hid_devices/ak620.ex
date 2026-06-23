@@ -26,5 +26,7 @@ defimpl Exkl.HidDevice, for: Exkl.HidDevices.AK620 do
   defdelegate product_id(device), to: Exkl.HidDevice.Impl
   defdelegate name(device), to: Exkl.HidDevice.Impl
   defdelegate startup_payload(device), to: Exkl.HidDevice.Impl
+  defdelegate blank_payload(device), to: Exkl.HidDevice.Impl
+  defdelegate off_payload(device), to: Exkl.HidDevice.Impl
   defdelegate encode_metrics(device, metrics), to: Exkl.HidDevice.Impl
 end

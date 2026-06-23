@@ -29,17 +29,14 @@ echo "  - XDG autostart entry"
 echo "  - desktop launcher entry"
 echo "  - release files in $EXKL_DIR"
 echo
-read -r -p "Do you want to proceed? (y/n): " choice
+read -r -p "Do you want to proceed? [y/N]: " choice
+choice=${choice:-N}
 
 case "$choice" in
   y|Y) ;;
-  n|N)
+  n|N|*)
     echo "Exiting."
     exit 0
-    ;;
-  *)
-    echo "Invalid choice."
-    exit 1
     ;;
 esac
 
@@ -82,7 +79,8 @@ if [ -d "$EXKL_DIR" ]; then
 fi
 
 echo
-read -r -p "Remove EXKL udev rules? (y/n): " remove_udev
+read -r -p "Remove EXKL udev rules? [y/N]: " remove_udev
+remove_udev=${remove_udev:-N}
 
 case "$remove_udev" in
   y|Y)
@@ -101,16 +99,14 @@ case "$remove_udev" in
       sudo udevadm trigger --subsystem-match=powercap --subsystem-match=hidraw
     fi
     ;;
-  n|N)
+  n|N|*)
     warn "Keeping udev rules at $UDEV_RULE_FILE"
-    ;;
-  *)
-    warn "Invalid choice. Keeping udev rules."
     ;;
 esac
 
 echo
-read -r -p "Remove '$UDEV_GROUP' group? (y/n): " remove_group
+read -r -p "Remove '$UDEV_GROUP' group? [y/N]: " remove_group
+remove_group=${remove_group:-N}
 
 case "$remove_group" in
   y|Y)
@@ -121,11 +117,8 @@ case "$remove_group" in
       warn "Group '$UDEV_GROUP' does not exist."
     fi
     ;;
-  n|N)
+  n|N|*)
     warn "Keeping group '$UDEV_GROUP'."
-    ;;
-  *)
-    warn "Invalid choice. Keeping group '$UDEV_GROUP'."
     ;;
 esac
 

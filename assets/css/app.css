@@ -426,6 +426,77 @@ html {
   padding: 0.85rem 1rem;
 }
 
+.mode-panel {
+  padding: 0.85rem 1rem;
+}
+
+.screen-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.45rem 0.35rem 0.35rem;
+  border-radius: 9999px;
+  border: 1px solid oklch(from var(--color-primary) l c h / 0.22);
+  background: oklch(from var(--color-primary) l c h / 0.12);
+  color: var(--color-base-content);
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.screen-toggle-off {
+  border-color: oklch(from var(--color-base-content) l c h / 0.12);
+  background: oklch(from var(--color-base-300) l c h / 0.45);
+}
+
+.screen-toggle:hover {
+  border-color: oklch(from var(--color-primary) l c h / 0.35);
+  box-shadow: 0 8px 24px oklch(from var(--color-primary) l c h / 0.12);
+}
+
+.screen-toggle-track {
+  position: relative;
+  width: 2.6rem;
+  height: 1.45rem;
+  border-radius: 9999px;
+  background: oklch(from var(--color-primary) l c h / 0.35);
+  transition: background 0.2s ease;
+}
+
+.screen-toggle-off .screen-toggle-track {
+  background: oklch(from var(--color-base-content) l c h / 0.16);
+}
+
+.screen-toggle-thumb {
+  position: absolute;
+  top: 0.15rem;
+  left: 0.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 9999px;
+  background: var(--color-base-100);
+  box-shadow: 0 2px 8px oklch(0% 0 0 / 0.18);
+  transform: translateX(1.15rem);
+  transition: transform 0.2s ease;
+}
+
+.screen-toggle-off .screen-toggle-thumb {
+  transform: translateX(0);
+}
+
+.screen-toggle-label {
+  min-width: 1.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .mode-label {
   margin-bottom: 0.55rem;
   font-size: 0.7rem;
@@ -589,10 +660,19 @@ html {
   border: 1px solid oklch(from var(--color-base-content) l c h / 0.05);
 }
 
+.device-item-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
 .device-item-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 0;
+  flex: 1;
 }
 
 .device-status {
@@ -630,6 +710,41 @@ html {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--color-base-content);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device-screen-toggle {
+  flex-shrink: 0;
+  gap: 0.35rem;
+  padding: 0.2rem 0.3rem 0.2rem 0.2rem;
+}
+
+.device-screen-toggle .screen-toggle-track {
+  width: 1.85rem;
+  height: 1.05rem;
+}
+
+.device-screen-toggle .screen-toggle-thumb {
+  top: 0.1rem;
+  left: 0.1rem;
+  width: 0.85rem;
+  height: 0.85rem;
+  transform: translateX(0.8rem);
+}
+
+.device-screen-toggle.screen-toggle-off .screen-toggle-thumb {
+  transform: translateX(0);
+}
+
+.device-screen-toggle .screen-toggle-label {
+  min-width: 1.15rem;
+  font-size: 0.58rem;
+}
+
+.device-screen-toggle:hover {
+  box-shadow: 0 4px 14px oklch(from var(--color-primary) l c h / 0.1);
 }
 
 .device-item-meta {

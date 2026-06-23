@@ -16,6 +16,16 @@ defmodule Exkl.HidDevices.AkSeries do
     build_packet(:start, 0.0)
   end
 
+  @spec blank() :: binary()
+  def blank, do: encode_metrics(%Exkl.AK{mode: :cpu_temp_c, metrics_value: 0.0})
+
+  @spec off() :: binary()
+  def off do
+    List.duplicate(0, 64)
+    |> List.replace_at(0, 16)
+    |> :binary.list_to_bin()
+  end
+
   defp encode_metrics(%Exkl.AK{mode: mode, metrics_value: value}) do
     build_packet(mode, value)
   end

@@ -12,6 +12,24 @@ defmodule Exkl.HidDevices.G2SeriesTest do
       assert <<16, 104, 1, 8, 12, 1, 2, _::binary>> = packet
     end
 
+    test "blank packet is a valid zero-metrics report" do
+      packet = G2Series.blank()
+
+      assert byte_size(packet) == 64
+      assert <<16, 104, 1, 8, 12, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 128, 22, _::binary>> =
+               packet
+
+      assert packet == G2Series.startup()
+    end
+
+    test "off packet clears the display with D6 set to 0" do
+      packet = G2Series.off()
+
+      assert byte_size(packet) == 64
+      assert <<16, 104, 1, 8, 12, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 126, 22, _::binary>> =
+               packet
+    end
+
     test "celsius temperature is encoded as a 32-bit float" do
       packet =
         G2Series.encode(%AK{
