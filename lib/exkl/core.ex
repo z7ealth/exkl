@@ -92,8 +92,19 @@ defmodule Exkl.Core do
 
   defp with_cpu_util(ak), do: Map.put(ak, :cpu_util, :cpu_sup.util())
 
+  defp with_cpu_temp_c(ak) do
+    temp =
+      case CpuSensors.temp_celsius() do
+        nil -> ak.cpu_temp_c
+        celsius -> celsius
+      end
+
+    Map.put(ak, :cpu_temp_c, temp)
+  end
+
   defp update_cpu_sensors(ak) do
     ak
+    |> with_cpu_temp_c()
     |> update_cpu_freq()
     |> update_cpu_power()
   end
