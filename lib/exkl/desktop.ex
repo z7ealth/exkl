@@ -15,6 +15,7 @@ defmodule Exkl.Desktop do
   require Logger
 
   alias Exkl.Desktop.API
+  alias Exkl.Desktop.TrayPosition
 
   def start_link() do
     :wx_object.start_link(__MODULE__, [], [])
@@ -162,8 +163,8 @@ defmodule Exkl.Desktop do
   end
 
   defp show_tray_popup(%{tray_popup: %{frame: frame, web_view: web_view}} = _state) do
-    position_tray_popup(frame)
     :wxFrame.show(frame)
+    place_tray_popup(frame)
     :wxFrame.raise(frame)
     :wxWindow.setFocus(web_view)
     :ok
@@ -174,18 +175,9 @@ defmodule Exkl.Desktop do
     :ok
   end
 
-  defp position_tray_popup(frame) do
-    display = :wxDisplay.new()
-    {origin_x, origin_y, width, _height} = :wxDisplay.getClientArea(display)
-    :wxDisplay.destroy(display)
-
-    {popup_w, _popup_h} = @tray_popup_size
-    margin = 16
-
-    :wxWindow.move(
-      frame,
-      {origin_x + width - popup_w - margin, origin_y + margin}
-    )
+  defp place_tray_popup(frame) do
+    {x, y} = TrayPosition.coordinates(@tray_popup_size)
+    :wxWindow.move(frame, {x, y})
   end
 
   def terminate(_reason, state) do

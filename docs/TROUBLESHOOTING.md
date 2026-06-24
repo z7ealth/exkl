@@ -11,6 +11,7 @@
 | **Device not updating** | Reboot after install (udev group). Check `journalctl --user -u exkl.service -f`. |
 | **Old tray/window icon after upgrade** | `MIX_ENV=prod mix release`, `./install.sh`, restart service. Icons load from the release `priv/` at runtime — a service restart alone is not enough if the release was not rebuilt. |
 | **Wrong launcher icon in GNOME** | Re-run `./install.sh`, or copy `~/.config/exkl/share/exkl.png` from a fresh build, then `update-desktop-database ~/.local/share/applications`. |
+| **Monitor popup in wrong place** | Set `EXKL_TRAY_POPUP_POSITION` in `~/.config/exkl/env` to `top-right`, `top-left`, `bottom-right`, or `bottom-left`, then restart the service. |
 | **Tray gone after Exit** | Expected — Exit closes the GUI only. `systemctl --user restart exkl.service` to restore the tray. Core, HID, and http://localhost:4500 keep running until the service stops. |
 
 Env changes apply at **service start** only — always run `systemctl --user restart exkl.service` after editing `~/.config/exkl/env`.
