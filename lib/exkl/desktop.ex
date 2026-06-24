@@ -88,8 +88,8 @@ defmodule Exkl.Desktop do
   end
 
   def handle_info(:show_main_window, state) do
-    show_frame(state.frame)
     hide_tray_popup(state)
+    show_frame(state)
     {:noreply, state}
   end
 
@@ -176,15 +176,15 @@ defmodule Exkl.Desktop do
 
   defp position_tray_popup(frame) do
     display = :wxDisplay.new()
-    {origin_x, origin_y, width, height} = :wxDisplay.getClientArea(display)
+    {origin_x, origin_y, width, _height} = :wxDisplay.getClientArea(display)
     :wxDisplay.destroy(display)
 
-    {popup_w, popup_h} = @tray_popup_size
+    {popup_w, _popup_h} = @tray_popup_size
     margin = 16
 
     :wxWindow.move(
       frame,
-      {origin_x + width - popup_w - margin, origin_y + height - popup_h - margin}
+      {origin_x + width - popup_w - margin, origin_y + margin}
     )
   end
 
@@ -222,10 +222,13 @@ defmodule Exkl.Desktop do
     Path.join(:code.priv_dir(:exkl), "static/images/icon/#{name}")
   end
 
-  defp show_frame(frame) do
+  defp show_frame(%{frame: frame, web_view: web_view}) do
     :wxFrame.show(frame)
     :wxFrame.maximize(frame)
     :wxFrame.raise(frame)
+    :wxTopLevelWindow.setFocus(frame)
+    :wxWindow.setFocus(web_view)
+    :wxTopLevelWindow.requestUserAttention(frame)
     :ok
   end
 

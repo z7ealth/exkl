@@ -68,6 +68,20 @@ check_runtime_versions() {
   log "Toolchain OK (OTP ${otp}, Elixir $(elixir --short-version))"
 }
 
+has_nvidia_gpu() {
+  if command -v lspci >/dev/null 2>&1; then
+    if lspci 2>/dev/null | grep -i nvidia | grep -qiE 'vga|3d|display'; then
+      return 0
+    fi
+  fi
+
+  if [ -d /sys/module/nvidia ] || [ -d /proc/driver/nvidia ]; then
+    return 0
+  fi
+
+  command -v nvidia-smi >/dev/null 2>&1
+}
+
 check_dependencies() {
   log "Checking build tools..."
 
@@ -171,13 +185,21 @@ SECRET_KEY_BASE="$(mix phx.gen.secret | tr -d '[:space:]')"
 
 log "Writing runtime environment to $EXKL_DIR/env..."
 umask 077
-cat > "$EXKL_DIR/env" <<EOF
+NVIDIA_WEBKIT_FIX=""
+if has_nvidia_gpu; then
+  NVIDIA_WEBKIT_FIX="WEBKIT_DISABLE_COMPOSITING_MODE=1"
+  log "NVIDIA GPU detected — setting WEBKIT_DISABLE_COMPOSITING_MODE=1"
+fi
+{
+  cat <<EOF
 PHX_SERVER=true
 SECRET_KEY_BASE=$SECRET_KEY_BASE
 PORT=4500
 GTK_USE_PORTAL=1
 GDK_BACKEND=x11
 EOF
+  [ -n "$NVIDIA_WEBKIT_FIX" ] && echo "$NVIDIA_WEBKIT_FIX"
+} > "$EXKL_DIR/env"
 chmod 600 "$EXKL_DIR/env"
 umask 022
 
@@ -290,6 +312,9 @@ echo "UI:         Open 'Show window' from the system tray icon"
 echo "Launcher:   EXKL in the app menu (or: $LAUNCH_PATH)"
 echo "Observer:   $EXKL_DIR/bin/exkl remote   # then :observer.start()"
 echo "Wayland:    install.sh sets GDK_BACKEND=x11 in exkl.service (tray on GNOME Wayland)"
+if has_nvidia_gpu; then
+  echo "NVIDIA:     install.sh sets WEBKIT_DISABLE_COMPOSITING_MODE=1 in $EXKL_DIR/env"
+fi
 echo "Service:    systemctl --user status exkl.service"
 echo "Logs:       journalctl --user -u exkl.service -f"
 echo "Uninstall:  ./uninstall.sh"

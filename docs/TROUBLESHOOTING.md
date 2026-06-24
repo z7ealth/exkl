@@ -6,7 +6,7 @@
 |---------|-----|
 | **Blank tray window** | Open http://localhost:4500 in a browser. Install `wxwidgets-gtk3` and `webkit2gtk-4.1`. |
 | **No tray icon (GNOME Wayland)** | `GDK_BACKEND=x11` in `~/.config/exkl/env`, then `systemctl --user restart exkl.service`. |
-| **Blank window on NVIDIA** | `WEBKIT_DISABLE_COMPOSITING_MODE=1` in `~/.config/exkl/env`, restart service. |
+| **Blank window on NVIDIA** | `install.sh` sets `WEBKIT_DISABLE_COMPOSITING_MODE=1` automatically; or add it manually to `~/.config/exkl/env`, then restart service. |
 | **Build fails on Fedora** | Use OTP 28+ and Elixir 1.19+ ([asdf](https://asdf-vm.com/) or [kerl](https://github.com/kerl/kerl)). Run `make deps-check`. |
 | **Device not updating** | Reboot after install (udev group). Check `journalctl --user -u exkl.service -f`. |
 | **Old tray/window icon after upgrade** | `MIX_ENV=prod mix release`, `./install.sh`, restart service. Icons load from the release `priv/` at runtime — a service restart alone is not enough if the release was not rebuilt. |
@@ -41,7 +41,7 @@ No `not found` lines — install `wxwidgets-gtk3` and `webkit2gtk-4.1` if needed
 
 WebKitGTK + proprietary NVIDIA drivers often produce a blank embedded window ([WebKit #180739](https://bugs.webkit.org/show_bug.cgi?id=180739)).
 
-Add to `~/.config/exkl/env`:
+`install.sh` detects an NVIDIA GPU (`lspci`, loaded `nvidia` module, or `nvidia-smi`) and writes `WEBKIT_DISABLE_COMPOSITING_MODE=1` to `~/.config/exkl/env`. To set it manually:
 
 ```bash
 WEBKIT_DISABLE_COMPOSITING_MODE=1
