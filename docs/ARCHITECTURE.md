@@ -14,7 +14,7 @@ graph TD
   Root --> Endpoint["ExklWeb.Endpoint"]
   Root --> Core["Exkl.Core"]
   Root --> Display["Exkl.Display"]
-  Root --> GUI["Exkl.GUI<br/><i>restart: temporary</i>"]
+  Root --> GUI["Exkl.GUI<br/><i>restart: transient</i>"]
 
   Display --> Worker1["Display.Worker"]
   Display --> WorkerN["Display.Worker …<br/><i>one per device</i>"]
@@ -26,7 +26,7 @@ graph TD
 
 `Exkl.Display` discovers DeepCool HID devices (vendor `3633`) at startup and starts one `Exkl.Display.Worker` per opened device. `Exkl.GUI` starts `Exkl.Desktop` (system tray + embedded dashboard).
 
-`Exkl.GUI` uses `restart: :temporary` so the supervisor does not respawn the GUI if it stops. Tray **Exit** stops only the wx desktop process; `Exkl.Core`, `Exkl.Display`, and `ExklWeb.Endpoint` keep running. Restart the user service to bring the tray back.
+`Exkl.GUI` uses `restart: :transient`: the supervisor restarts the GUI after an abnormal exit (for example a wx/WebView crash), but not after tray **Exit** (`{:stop, :normal}` on `Exkl.Desktop`). On intentional Exit, only the wx desktop stops; `Exkl.Core`, `Exkl.Display`, and `ExklWeb.Endpoint` keep running. Restart the user service to bring the tray back after Exit.
 
 ## Data flow
 

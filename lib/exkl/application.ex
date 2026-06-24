@@ -16,7 +16,7 @@ defmodule Exkl.Application do
       ExklWeb.Endpoint,
       {Exkl.Core, %Exkl.AK{}},
       Exkl.Display,
-      {Exkl.GUI, restart: :temporary}
+      {Exkl.GUI, restart: :transient}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
