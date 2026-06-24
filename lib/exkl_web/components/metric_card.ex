@@ -171,6 +171,7 @@ defmodule ExklWeb.MetricCard do
     |> Enum.with_index()
     |> Enum.map(fn {y, index} ->
       x = index / max(count - 1, 1) * 240
+      y = invert_y(y, 72)
       "#{Float.round(x, 2)},#{Float.round(y, 2)}"
     end)
     |> Enum.join(" ")
@@ -195,7 +196,7 @@ defmodule ExklWeb.MetricCard do
     |> pad_series(@segments)
     |> normalize_series(min, max, 100)
     |> Enum.map(fn height ->
-      height |> invert_y(100) |> max(6) |> min(100) |> trunc()
+      height |> max(6) |> min(100) |> trunc()
     end)
   end
 
