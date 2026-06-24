@@ -17,7 +17,13 @@ defmodule ExklWeb.Router do
   scope "/", ExklWeb do
     pipe_through :browser
 
-    live "/", DashboardLive.Index, :index
+    live_session :default, root_layout: {ExklWeb.Layouts, :root} do
+      live "/", DashboardLive.Index, :index
+    end
+
+    live_session :tray, root_layout: {ExklWeb.Layouts, :tray_root} do
+      live "/tray", TrayLive.Index, :index
+    end
   end
 
   # Other scopes may use custom stacks.
