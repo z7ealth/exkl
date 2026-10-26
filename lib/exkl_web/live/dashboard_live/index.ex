@@ -5,6 +5,7 @@ defmodule ExklWeb.DashboardLive.Index do
   use ExklWeb, :live_view
 
   import ExklWeb.MetricCard
+  import ExklWeb.DeviceList
 
   alias Exkl.Display.Settings
   alias Exkl.HidDevice.Discovery
@@ -54,8 +55,8 @@ defmodule ExklWeb.DashboardLive.Index do
     ~H"""
     <Layouts.app flash={@flash}>
       <div class="dashboard-grid">
-        <section class="dc-card system-panel">
-          <div class="system-panel-header">
+        <.pp_card variant="elevated" class="system-panel h-full" content_class="flex min-h-0 flex-col">
+          <div class="system-panel-header flex flex-col items-center gap-2 text-center">
             <.exkl_icon
               id="exkl-icon-dark"
               temp={@icon_temp}
@@ -72,69 +73,32 @@ defmodule ExklWeb.DashboardLive.Index do
               theme={:light}
               class="system-icon system-icon-light"
             />
-            <p class="font-display text-base font-semibold tracking-tight text-base-content sm:text-lg">
-              EXKL
-            </p>
-            <p class="system-subtitle text-sm text-base-content/50">v{@version}</p>
+            <div>
+              <.pp_typography variant="title-large" tag="h1" emphasized>EXKL</.pp_typography>
+              <.pp_typography variant="body-small" tag="p" color="on-surface-variant" class="system-subtitle">
+                v{@version}
+              </.pp_typography>
+            </div>
           </div>
 
-          <div class="divider my-2 opacity-30" />
+          <.pp_divider class="system-panel-divider my-3" />
 
-          <ul class="system-facts">
-            <li :for={fact <- system_facts(@facts)} class="system-fact">
-              <span class="system-fact-label">{fact.label}</span>
-              <span class="system-fact-value">{fact.value}</span>
-            </li>
-          </ul>
+          <dl class="system-facts flex flex-col gap-2">
+            <div
+              :for={fact <- system_facts(@facts)}
+              class="flex flex-col gap-0.5 rounded-pp-md bg-pp-surface-container px-3 py-2"
+            >
+              <dt class="pp-label-small uppercase tracking-widest text-pp-on-surface-variant">
+                {fact.label}
+              </dt>
+              <dd class="pp-body-medium break-all text-pp-on-surface">{fact.value}</dd>
+            </div>
+          </dl>
 
-          <div class="divider my-2 opacity-30" />
+          <.pp_divider class="system-panel-divider my-3" />
 
-          <div class="device-section">
-            <p class="device-section-label">DeepCool devices</p>
-
-            <p :if={@devices == []} class="device-empty">
-              No DeepCool HID devices detected
-            </p>
-
-            <ul :if={@devices != []} class="device-list">
-              <li :for={device <- @devices} class="device-item">
-                <div class="device-item-top">
-                  <div class="device-item-header">
-                    <span class={["device-status", device_status_class(device.status)]} />
-                    <span class="device-name">{device.name}</span>
-                  </div>
-
-                  <button
-                    :if={device.status == :connected}
-                    type="button"
-                    phx-click="toggle_screen"
-                    class={["screen-toggle", "device-screen-toggle", !@screen_on && "screen-toggle-off"]}
-                    aria-pressed={@screen_on}
-                    aria-label={if(@screen_on, do: "Turn cooler screen off", else: "Turn cooler screen on")}
-                    title={if(@screen_on, do: "Screen on — sending live metrics", else: "Screen off — display powered down")}
-                  >
-                    <span class="screen-toggle-track" aria-hidden="true">
-                      <span class="screen-toggle-thumb">
-                        <.icon
-                          name={if(@screen_on, do: "hero-signal", else: "hero-pause")}
-                          class="size-2.5"
-                        />
-                      </span>
-                    </span>
-                    <span class="screen-toggle-label">{if(@screen_on, do: "On", else: "Off")}</span>
-                  </button>
-                </div>
-                <div class="device-item-meta">
-                  <span class="device-usb-id">{device.usb_id}</span>
-                  <span class="device-family">{device_family_label(device.family)}</span>
-                </div>
-                <span class={["device-status-label", device_status_class(device.status)]}>
-                  {device_status_label(device.status)}
-                </span>
-              </li>
-            </ul>
-          </div>
-        </section>
+          <.device_list devices={@devices} screen_on={@screen_on} />
+        </.pp_card>
 
         <div class="metrics-column">
           <.metric_card
@@ -163,7 +127,7 @@ defmodule ExklWeb.DashboardLive.Index do
             unit={@gpu_unit}
             available?={@gpu_available?}
             progress={@gpu_metric_progress}
-            tone="accent"
+            tone="tertiary"
             history={@gpu_history}
             chart_min={@gpu_chart_min}
             chart_max={@gpu_chart_max}
@@ -176,23 +140,31 @@ defmodule ExklWeb.DashboardLive.Index do
           />
         </div>
 
-        <section class="dc-card mode-panel">
-            <p class="mode-label">Display mode</p>
-            <div class="mode-selector">
-              <button
-                :for={mode <- @modes}
-                type="button"
-                phx-click="change_mode"
-                phx-value-mode={mode.id}
-                class={["mode-btn", @ak.mode == mode.id && "mode-btn-active"]}
-                aria-pressed={@ak.mode == mode.id}
-                title={mode.title}
-              >
-                <.icon name={mode.icon} class="size-4 shrink-0" />
-                <span class="mode-btn-label">{mode.title}</span>
-              </button>
-            </div>
-          </section>
+        <.pp_card variant="elevated" class="mode-panel">
+          <.pp_typography
+            variant="label-medium"
+            tag="h2"
+            color="on-surface-variant"
+            class="mb-3 uppercase tracking-widest"
+          >
+            Display mode
+          </.pp_typography>
+          <.pp_button_group variant="connected" full_width aria-label="Display mode">
+            <.pp_button
+              :for={mode <- @modes}
+              variant="tonal"
+              size="sm"
+              selected={@ak.mode == mode.id}
+              phx-click="change_mode"
+              phx-value-mode={mode.id}
+              title={mode.title}
+              aria-label={mode.title}
+            >
+              <:start_icon><.pp_icon name={mode.icon} /></:start_icon>
+              <span class="mode-btn-label">{mode.title}</span>
+            </.pp_button>
+          </.pp_button_group>
+        </.pp_card>
       </div>
     </Layouts.app>
     """
@@ -404,17 +376,4 @@ defmodule ExklWeb.DashboardLive.Index do
   end
 
   defp celsius_to_fahrenheit(celsius), do: celsius * 9.0 / 5.0 + 32.0
-
-  defp device_status_label(:connected), do: "Connected"
-  defp device_status_label(:detected), do: "Detected"
-  defp device_status_label(:unsupported), do: "Unsupported"
-
-  defp device_status_class(:connected), do: "device-status-connected"
-  defp device_status_class(:detected), do: "device-status-detected"
-  defp device_status_class(:unsupported), do: "device-status-unsupported"
-
-  defp device_family_label(nil), do: "Unknown protocol"
-  defp device_family_label(:ak_series), do: "AK series"
-  defp device_family_label(:ch_series), do: "CH series"
-  defp device_family_label(:g2_series), do: "G2 series"
 end

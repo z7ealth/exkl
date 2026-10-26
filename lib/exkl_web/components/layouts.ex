@@ -32,15 +32,17 @@ defmodule ExklWeb.Layouts do
   def app(assigns) do
     ~H"""
     <div class="dashboard-bg relative flex h-dvh flex-col overflow-hidden">
-      <header class="dashboard-header relative z-10 flex shrink-0 items-center justify-between px-4 py-3 sm:px-6">
-        <div class="flex items-center gap-3">
+      <.pp_top_app_bar id="dashboard-bar" class="dashboard-header shrink-0 px-3 sm:px-5">
+        <span class="flex items-center gap-3">
           <span class="live-dot" aria-hidden="true" />
-          <span class="text-xs font-medium uppercase tracking-[0.2em] text-base-content/50">
+          <.pp_typography variant="label-large" tag="span" color="on-surface-variant" class="uppercase tracking-[0.2em]">
             Live
-          </span>
-        </div>
-        <.theme_toggle />
-      </header>
+          </.pp_typography>
+        </span>
+        <:actions>
+          <.pp_theme_toggle id="theme-toggle" />
+        </:actions>
+      </.pp_top_app_bar>
 
       <main class="dashboard-main relative z-10 flex flex-1 items-center justify-center overflow-y-auto px-4 py-4 sm:px-6">
         <div class="dashboard-frame mx-auto w-full max-w-6xl">
@@ -48,84 +50,7 @@ defmodule ExklWeb.Layouts do
         </div>
       </main>
 
-      <.flash_group flash={@flash} />
-    </div>
-    """
-  end
-
-  @doc """
-  Shows the flash group with standard titles and content.
-
-  ## Examples
-
-      <.flash_group flash={@flash} />
-  """
-  attr :flash, :map, required: true, doc: "the map of flash messages"
-  attr :id, :string, default: "flash-group", doc: "the optional id of flash container"
-
-  def flash_group(assigns) do
-    ~H"""
-    <div id={@id} aria-live="polite">
-      <.flash kind={:info} flash={@flash} />
-      <.flash kind={:error} flash={@flash} />
-
-      <.flash
-        id="client-error"
-        kind={:error}
-        title="We can't find the internet"
-        phx-disconnected={show(".phx-client-error #client-error") |> JS.remove_attribute("hidden")}
-        phx-connected={hide("#client-error") |> JS.set_attribute({"hidden", ""})}
-        hidden
-      >
-        Attempting to reconnect
-        <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
-      </.flash>
-
-      <.flash
-        id="server-error"
-        kind={:error}
-        title="Something went wrong!"
-        phx-disconnected={show(".phx-server-error #server-error") |> JS.remove_attribute("hidden")}
-        phx-connected={hide("#server-error") |> JS.set_attribute({"hidden", ""})}
-        hidden
-      >
-        Attempting to reconnect
-        <.icon name="hero-arrow-path" class="ml-1 size-3 motion-safe:animate-spin" />
-      </.flash>
-    </div>
-    """
-  end
-
-  @doc """
-  Provides dark vs light theme toggle based on themes defined in app.css.
-
-  See <head> in root.html.heex which applies the theme before page load.
-  """
-  def theme_toggle(assigns) do
-    ~H"""
-    <div class="dc-card dc-theme-toggle relative flex flex-row items-center rounded-full p-0.5">
-      <div class="absolute w-1/3 h-[calc(100%-4px)] rounded-full bg-base-100/80 shadow-sm left-0.5 top-0.5 [[data-theme=light]_&]:left-[calc(33.33%+2px)] [[data-theme=dark]_&]:left-[calc(66.66%+2px)] transition-[left] duration-300 ease-out" />
-
-      <button
-        phx-click={JS.dispatch("phx:set-theme", detail: %{theme: "system"})}
-        class="flex p-2 cursor-pointer w-1/3"
-      >
-        <.icon name="hero-computer-desktop-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-
-      <button
-        phx-click={JS.dispatch("phx:set-theme", detail: %{theme: "light"})}
-        class="flex p-2 cursor-pointer w-1/3"
-      >
-        <.icon name="hero-sun-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
-
-      <button
-        phx-click={JS.dispatch("phx:set-theme", detail: %{theme: "dark"})}
-        class="flex p-2 cursor-pointer w-1/3"
-      >
-        <.icon name="hero-moon-micro" class="size-4 opacity-75 hover:opacity-100" />
-      </button>
+      <.pp_flash_group flash={@flash} auto_hide_duration={5000} connection_notices />
     </div>
     """
   end

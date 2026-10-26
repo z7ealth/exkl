@@ -1,8 +1,7 @@
 defmodule ExklWeb.MetricCard do
   @moduledoc false
   use Phoenix.Component
-
-  import ExklWeb.CoreComponents
+  use PhoenixPaper.Components
 
   attr :title, :string, required: true
   attr :subtitle, :string, required: true
@@ -10,7 +9,7 @@ defmodule ExklWeb.MetricCard do
   attr :unit, :string, default: ""
   attr :available?, :boolean, default: true
   attr :progress, :float, required: true
-  attr :tone, :string, default: "primary"
+  attr :tone, :string, default: "primary", values: ~w(primary tertiary)
   attr :history, :list, default: []
   attr :chart_min, :float, default: 0.0
   attr :chart_max, :float, default: 100.0
@@ -38,15 +37,27 @@ defmodule ExklWeb.MetricCard do
       |> assign(:bars, bar_heights(assigns.history, assigns.chart_min, assigns.chart_max))
 
     ~H"""
-    <section class={["dc-card metric-card", "metric-card-#{@tone}"]}>
-      <div class="metric-card-header">
-        <div class="metric-card-header-left">
-          <div class="metric-icon-badge">
-            <.icon name={@icon} class="size-5 text-primary" />
-          </div>
-          <p class="metric-label">{short_title(@title)}</p>
+    <.pp_card
+      variant="elevated"
+      class={["metric-card h-full", tone_class(@tone)]}
+      content_class="flex flex-col"
+    >
+      <div class="mb-3 flex items-center justify-between gap-3">
+        <div class="flex min-w-0 items-center gap-3">
+          <span class="metric-icon-badge flex size-10 shrink-0 items-center justify-center rounded-pp-md">
+            <.pp_icon name={@icon} />
+          </span>
+          <.pp_typography variant="title-medium" tag="h2">{short_title(@title)}</.pp_typography>
         </div>
-        <p class="metric-subtitle">{@subtitle}</p>
+        <.pp_typography
+          variant="body-small"
+          tag="p"
+          color="on-surface-variant"
+          class="metric-subtitle max-w-[55%] truncate text-right"
+          title={@subtitle}
+        >
+          {@subtitle}
+        </.pp_typography>
       </div>
 
       <div class="metric-card-body">
@@ -67,7 +78,9 @@ defmodule ExklWeb.MetricCard do
             />
           </svg>
           <div class="dc-gauge-center">
-            <span class="dc-gauge-label">{@gauge_label}</span>
+            <.pp_typography variant="label-small" tag="span" color="on-surface-variant">
+              {@gauge_label}
+            </.pp_typography>
             <span
               class={["dc-gauge-value", !@available? && "metric-unavailable"]}
               phx-hook="MetricPulse"
@@ -78,16 +91,16 @@ defmodule ExklWeb.MetricCard do
           </div>
         </div>
 
-        <div class="dc-stat-list">
-          <div :if={@freq} class="dc-stat">
-            <span class="dc-stat-value">{@freq}</span>
-            <span class="dc-stat-label">Clock Speed</span>
+        <dl class="flex flex-col justify-center gap-3">
+          <div :if={@freq} class="flex flex-col-reverse gap-0.5">
+            <dt class="pp-label-medium text-pp-on-surface-variant">Clock speed</dt>
+            <dd class="metric-tone pp-title-medium-emphasized">{@freq}</dd>
           </div>
-          <div :if={@power} class="dc-stat">
-            <span class="dc-stat-value">{@power}</span>
-            <span class="dc-stat-label">Power</span>
+          <div :if={@power} class="flex flex-col-reverse gap-0.5">
+            <dt class="pp-label-medium text-pp-on-surface-variant">Power</dt>
+            <dd class="metric-tone pp-title-medium-emphasized">{@power}</dd>
           </div>
-        </div>
+        </dl>
       </div>
 
       <div class="metric-chart-wrap">
@@ -129,14 +142,17 @@ defmodule ExklWeb.MetricCard do
         </div>
       </div>
 
-      <div class="metric-stats">
-        <span><em>min</em> {@stats.min}</span>
-        <span><em>avg</em> {@stats.avg}</span>
-        <span><em>max</em> {@stats.max}</span>
+      <div class="mt-3 flex shrink-0 justify-between gap-2 pp-label-medium text-pp-on-surface-variant">
+        <span><span class="me-1 uppercase opacity-70">min</span>{@stats.min}</span>
+        <span><span class="me-1 uppercase opacity-70">avg</span>{@stats.avg}</span>
+        <span><span class="me-1 uppercase opacity-70">max</span>{@stats.max}</span>
       </div>
-    </section>
+    </.pp_card>
     """
   end
+
+  defp tone_class("tertiary"), do: "metric-card-tertiary"
+  defp tone_class(_), do: nil
 
   defp short_title("CPU Temperature"), do: "CPU"
   defp short_title("CPU Load"), do: "CPU"

@@ -3,6 +3,7 @@ defmodule ExklWeb.TrayLive.Index do
   use ExklWeb, :live_view
 
   import ExklWeb.TraySparkline
+  import ExklWeb.DeviceList
 
   alias Exkl.Desktop.API
   alias Exkl.Display.Settings
@@ -44,127 +45,85 @@ defmodule ExklWeb.TrayLive.Index do
       |> assign(:gpu_available?, gpu_available?(assigns.ak))
 
     ~H"""
-    <div class="tray-popup">
-      <header class="tray-popup-header">
+    <div class="flex h-full flex-col gap-3 overflow-hidden p-4">
+      <header class="flex shrink-0 items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="live-dot" aria-hidden="true" />
-          <h1 class="font-display text-base font-semibold tracking-tight text-base-content">EXKL</h1>
+          <.pp_typography variant="title-medium" tag="h1" emphasized>EXKL</.pp_typography>
         </div>
-        <span class="text-xs text-base-content/50">v{@version}</span>
+        <.pp_typography variant="label-medium" tag="span" color="on-surface-variant">
+          v{@version}
+        </.pp_typography>
       </header>
 
-      <section class="dc-card tray-metric-card">
-        <div class="tray-card-top">
-          <div class="flex items-center gap-2">
-            <.icon name="hero-cpu-chip" class="size-5 text-primary" />
-            <p class="metric-label">CPU</p>
-          </div>
-          <div class="tray-metric-grid">
-            <div class="tray-metric">
-              <span class="tray-metric-label">Temp</span>
-              <span class="tray-metric-value">{@cpu_temp}</span>
-            </div>
-            <div class="tray-metric">
-              <span class="tray-metric-label">Load</span>
-              <span class="tray-metric-value">{@cpu_util}</span>
-            </div>
-          </div>
-        </div>
-        <div class="text-primary">
-          <.tray_sparkline
-            id="tray-cpu-spark"
-            values={@cpu_history}
-            min={0.0}
-            max={100.0}
-            stroke="currentColor"
-            fill="currentColor"
-          />
-        </div>
-      </section>
+      <.tray_metric
+        icon="hero-cpu-chip"
+        label="CPU"
+        temp={@cpu_temp}
+        util={@cpu_util}
+        history={@cpu_history}
+        spark_id="tray-cpu-spark"
+        tone="text-pp-primary"
+      />
 
-      <section class={["dc-card tray-metric-card", !@gpu_available? && "opacity-60"]}>
-        <div class="tray-card-top">
-          <div class="flex items-center gap-2">
-            <.icon name="hero-fire" class="size-5 text-primary" />
-            <p class="metric-label">GPU</p>
-          </div>
-          <div class="tray-metric-grid">
-            <div class="tray-metric">
-              <span class="tray-metric-label">Temp</span>
-              <span class="tray-metric-value">{@gpu_temp}</span>
-            </div>
-            <div class="tray-metric">
-              <span class="tray-metric-label">Load</span>
-              <span class="tray-metric-value">{@gpu_util}</span>
-            </div>
-          </div>
-        </div>
-        <div class="text-primary">
-          <.tray_sparkline
-            id="tray-gpu-spark"
-            values={@gpu_history}
-            min={0.0}
-            max={100.0}
-            stroke="currentColor"
-            fill="currentColor"
-          />
-        </div>
-      </section>
+      <.tray_metric
+        icon="hero-fire"
+        label="GPU"
+        temp={@gpu_temp}
+        util={@gpu_util}
+        history={@gpu_history}
+        spark_id="tray-gpu-spark"
+        tone="text-pp-tertiary"
+        class={!@gpu_available? && "opacity-60"}
+      />
 
-      <section class="dc-card device-section tray-device-section">
-        <p class="device-section-label">DeepCool devices</p>
+      <.pp_card variant="filled" class="min-h-0 flex-1 overflow-hidden" content_class="flex min-h-0 flex-col">
+        <.device_list devices={@devices} screen_on={@screen_on} show_family={false} />
+      </.pp_card>
 
-        <p :if={@devices == []} class="device-empty">
-          No DeepCool HID devices detected
-        </p>
-
-        <ul :if={@devices != []} class="device-list">
-          <li :for={device <- @devices} class="device-item">
-            <div class="device-item-top">
-              <div class="device-item-header">
-                <span class={["device-status", device_status_class(device.status)]} />
-                <span class="device-name">{device.name}</span>
-              </div>
-
-              <button
-                :if={device.status == :connected}
-                type="button"
-                phx-click="toggle_screen"
-                class={["screen-toggle", "device-screen-toggle", !@screen_on && "screen-toggle-off"]}
-                aria-pressed={@screen_on}
-                aria-label={if(@screen_on, do: "Turn cooler screen off", else: "Turn cooler screen on")}
-              >
-                <span class="screen-toggle-track" aria-hidden="true">
-                  <span class="screen-toggle-thumb">
-                    <.icon
-                      name={if(@screen_on, do: "hero-signal", else: "hero-pause")}
-                      class="size-2.5"
-                    />
-                  </span>
-                </span>
-                <span class="screen-toggle-label">{if(@screen_on, do: "On", else: "Off")}</span>
-              </button>
-            </div>
-
-            <div class="device-item-meta">
-              <span class="device-usb-id">{device.usb_id}</span>
-              <span class={["device-status-label", device_status_class(device.status)]}>
-                {device_status_label(device.status)}
-              </span>
-            </div>
-          </li>
-        </ul>
-      </section>
-
-      <footer class="tray-popup-footer">
-        <button type="button" phx-click="open_window" class="btn btn-primary btn-sm">
+      <footer class="grid shrink-0 grid-cols-[1fr_auto] gap-2">
+        <.pp_button phx-click="open_window" variant="filled" size="sm">
+          <:start_icon><.pp_icon name="hero-arrow-top-right-on-square" /></:start_icon>
           Open dashboard
-        </button>
-        <button type="button" phx-click="close_popup" class="btn btn-ghost btn-sm">
-          Close
-        </button>
+        </.pp_button>
+        <.pp_button phx-click="close_popup" variant="text" size="sm">Close</.pp_button>
       </footer>
     </div>
+    """
+  end
+
+  attr :icon, :string, required: true
+  attr :label, :string, required: true
+  attr :temp, :string, required: true
+  attr :util, :string, required: true
+  attr :history, :list, required: true
+  attr :spark_id, :string, required: true
+  attr :tone, :string, required: true
+  attr :class, :any, default: nil
+
+  defp tray_metric(assigns) do
+    ~H"""
+    <.pp_card variant="filled" class={["shrink-0", @class]}>
+      <div class="mb-2 flex items-start justify-between gap-3">
+        <div class="flex items-center gap-2">
+          <.pp_icon name={@icon} class={@tone} />
+          <.pp_typography variant="title-medium" tag="h2">{@label}</.pp_typography>
+        </div>
+        <dl class="grid grid-cols-2 gap-x-4 text-right">
+          <div class="flex flex-col-reverse">
+            <dt class="pp-label-small uppercase tracking-wider text-pp-on-surface-variant">Temp</dt>
+            <dd class={["pp-title-small-emphasized", @tone]}>{@temp}</dd>
+          </div>
+          <div class="flex flex-col-reverse">
+            <dt class="pp-label-small uppercase tracking-wider text-pp-on-surface-variant">Load</dt>
+            <dd class={["pp-title-small-emphasized", @tone]}>{@util}</dd>
+          </div>
+        </dl>
+      </div>
+      <div class={@tone}>
+        <.tray_sparkline id={@spark_id} values={@history} min={0.0} max={100.0} />
+      </div>
+    </.pp_card>
     """
   end
 
@@ -227,14 +186,6 @@ defmodule ExklWeb.TrayLive.Index do
 
   defp format_percent(nil), do: "—"
   defp format_percent(value), do: "#{round(value)}%"
-
-  defp device_status_label(:connected), do: "Connected"
-  defp device_status_label(:detected), do: "Detected"
-  defp device_status_label(:unsupported), do: "Unsupported"
-
-  defp device_status_class(:connected), do: "device-status-connected"
-  defp device_status_class(:detected), do: "device-status-detected"
-  defp device_status_class(:unsupported), do: "device-status-unsupported"
 
   defp app_version, do: Application.spec(:exkl, :vsn) |> to_string()
 end

@@ -83,6 +83,8 @@ defmodule ExklWeb do
       # Core UI components
       import ExklWeb.CoreComponents
       import ExklWeb.Components.Icon
+      # Material Design 3 components (pp_*)
+      use PhoenixPaper.Components
 
       # Common modules used in templates
       alias Phoenix.LiveView.JS

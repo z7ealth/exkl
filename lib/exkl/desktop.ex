@@ -7,6 +7,8 @@ defmodule Exkl.Desktop do
   @frame_margin 96
   @default_min_width 1280
   @tray_popup_size {460, 580}
+  # Matches --radius-pp-lg, the radius .tray-body draws its border with.
+  @tray_popup_radius 16
   @tray_popup_url "http://localhost:4500/tray"
 
   @menu_about 1
@@ -139,6 +141,7 @@ defmodule Exkl.Desktop do
     :wxSizer.add(sizer, web_view, tray_expand())
     :wxFrame.setSizer(frame, sizer)
     :wxFrame.layout(frame)
+    round_corners(frame)
 
     %{frame: frame, web_view: web_view}
   end
@@ -150,8 +153,22 @@ defmodule Exkl.Desktop do
   end
 
   defp tray_popup_style do
-    # wxFRAME_TOOL_WINDOW | wxSTAY_ON_TOP | wxBORDER_NONE | wxFRAME_NO_TASKBAR
-    8_388_608 + 32_768 + 33_554_432 + 524_288
+    # wxFRAME_TOOL_WINDOW | wxSTAY_ON_TOP | wxBORDER_NONE | wxFRAME_NO_TASKBAR | wxFRAME_SHAPED
+    8_388_608 + 32_768 + 33_554_432 + 524_288 + 16
+  end
+
+  # Clips the popup to a rounded rectangle (X11 SHAPE: no compositor needed),
+  # so the page's rounded border isn't framed by square window corners.
+  defp round_corners(frame) do
+    {width, height} = :wxWindow.getSize(frame)
+    path = :wxGraphicsRenderer.createPath(:wxGraphicsRenderer.getDefaultRenderer())
+    :wxGraphicsPath.addRoundedRectangle(path, 0, 0, width, height, @tray_popup_radius)
+
+    unless :wxTopLevelWindow.setShape(frame, path) do
+      Logger.warning("Tray popup: window shaping unsupported, corners stay square")
+    end
+
+    :wxGraphicsObject.destroy(path)
   end
 
   defp toggle_tray_popup(%{tray_popup: %{frame: frame}} = state) do

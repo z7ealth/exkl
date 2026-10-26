@@ -23,7 +23,7 @@ defmodule ExklWeb.Components.Icon do
       assigns
       |> assign(:droplet, @droplet)
       |> assign(:gid, "#{assigns.id}-grad")
-      |> assign(:tile_fill, if(assigns.theme == :light, do: "#ffffff", else: "#1a1f27"))
+      |> assign(:tile_fill, if(assigns.theme == :light, do: "#eff1f5", else: "#1e1e2e"))
       |> assign(:show_digits, assigns.size >= 40)
       |> assign(:digit_color, digit_color(assigns))
       |> assign(:label, format_value(assigns.temp))
